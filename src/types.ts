@@ -1,8 +1,14 @@
 import type { IWuIcons } from '@npm-questionpro/wick-ui-lib'
 
-export type SetupScreen = 'welcome' | 'nda' | 'screener' | 'device' | 'ready'
+export type SetupScreen =
+  | 'welcome'
+  | 'nda'
+  | 'screener'
+  | 'screenedOut'
+  | 'device'
+  | 'ready'
 
-export type SetupStepId = Exclude<SetupScreen, 'welcome' | 'ready'>
+export type SetupStepId = Exclude<SetupScreen, 'welcome' | 'ready' | 'screenedOut'>
 
 export interface StudyStep {
   id: SetupStepId
@@ -23,15 +29,19 @@ export interface ScreenerQuestion {
   question: string
   hint?: string
   options: string[]
+  screenOutIf?: string
 }
 
-export type DeviceCheckId = 'camera' | 'microphone' | 'speakers' | 'screenShare'
+export type DeviceCheckId = 'camera' | 'microphone' | 'screenShare'
+
+export type DeviceCheckGroup = 'cameraMic' | 'screenShare'
 
 export interface DeviceCheck {
   id: DeviceCheckId
   label: string
   description: string
   icon: IWuIcons
+  group: DeviceCheckGroup
 }
 
 export type DeviceCheckStatus = 'idle' | 'running' | 'passed' | 'failed'

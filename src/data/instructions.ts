@@ -2,6 +2,7 @@ import type { SetupStepId } from '../types'
 
 export interface StepInstructions {
   title: string
+  description?: string
   points: string[]
 }
 
@@ -17,21 +18,15 @@ export const STEP_INSTRUCTIONS: Record<SetupStepId, StepInstructions> = {
   },
   screener: {
     title: 'Why a few questions first',
-    points: [
-      'Your answers help us confirm you are a good fit for this study.',
-      'There are no right or wrong answers.',
-      'Answer honestly — it keeps the research reliable.',
-      'You move on once every question is answered.',
-    ],
+    description:
+      "We'll ask a few quick questions to determine whether you're eligible for this test. It should only take a moment.",
+    points: [],
   },
   device: {
     title: 'Get your device ready',
-    points: [
-      'We need your camera, microphone, speakers and screen sharing for the test.',
-      'Allow camera and mic access when your browser asks for permission.',
-      'Find a quiet place and close apps that could beep or interrupt you.',
-      'Headphones give the best audio experience.',
-    ],
+    description:
+      "We'll use these permissions to observe and analyze your interactions during the session. This will help us understand your journey better and improve the experience.",
+    points: [],
   },
 }
 

@@ -2,31 +2,24 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { WuButton } from '@npm-questionpro/wick-ui-lib'
 import type {
-  DeviceCheckId,
-  DeviceCheckState,
   ParticipantDetails,
   ScreenerAnswers,
   SetupScreen,
 } from './types'
-import { DEVICE_CHECKS, SCREENER_QUESTIONS, STUDY } from './data/study'
+import { STUDY } from './data/study'
 import { READY_INSTRUCTIONS, STEP_INSTRUCTIONS } from './data/instructions'
 import welcomeScreen from '../assets/welcome-screen.svg'
+import screenedOutScreen from '../assets/screened-out.svg'
 import DeviceSetupStep from './components/steps/DeviceSetupStep'
 import NdaStep, { NdaPanel } from './components/steps/NdaStep'
 import ReadyStep from './components/steps/ReadyStep'
 import ScreenerStep from './components/steps/ScreenerStep'
+import ScreenedOutPanel from './components/steps/ScreenedOutStep'
 import WelcomePanel from './components/steps/WelcomeStep'
 import InstructionsPanel from './components/InstructionsPanel'
 import SplitLayout from './components/SplitLayout'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-const INITIAL_CHECKS: DeviceCheckState = {
-  camera: 'idle',
-  microphone: 'idle',
-  speakers: 'idle',
-  screenShare: 'idle',
-}
 
 export default function App() {
   const [screen, setScreen] = useState<SetupScreen>('welcome')
@@ -37,7 +30,7 @@ export default function App() {
   const [ndaAgreed, setNdaAgreed] = useState(false)
   const [ndaScrolled, setNdaScrolled] = useState(false)
   const [screener, setScreener] = useState<ScreenerAnswers>({})
-  const [checks, setChecks] = useState<DeviceCheckState>(INITIAL_CHECKS)
+  const [deviceReady, setDeviceReady] = useState(false)
 
   const goTo = (next: SetupScreen) => {
     setScreen(next)
@@ -47,27 +40,7 @@ export default function App() {
   const detailsComplete =
     details.name.trim() !== '' && EMAIL_RE.test(details.email.trim())
 
-  const screenerComplete = SCREENER_QUESTIONS.every((q) => Boolean(screener[q.id]))
-
-  const deviceComplete = DEVICE_CHECKS.every((c) => checks[c.id] === 'passed')
-
-  const runCheck = (id: DeviceCheckId) => {
-    setChecks((prev) => ({ ...prev, [id]: 'running' }))
-    window.setTimeout(() => {
-      setChecks((prev) => ({ ...prev, [id]: 'passed' }))
-    }, 1400)
-  }
-
-  const runAllChecks = () => {
-    DEVICE_CHECKS.forEach((c, i) => {
-      setChecks((prev) => ({ ...prev, [c.id]: 'running' }))
-      window.setTimeout(() => {
-        setChecks((prev) => ({ ...prev, [c.id]: 'passed' }))
-      }, 900 + i * 700)
-    })
-  }
-
-  const nextScreen: Record<Exclude<SetupScreen, 'welcome' | 'ready'>, SetupScreen> = {
+  const nextScreen: Record<Exclude<SetupScreen, 'welcome' | 'ready' | 'screenedOut'>, SetupScreen> = {
     nda: 'screener',
     screener: 'device',
     device: 'ready',
@@ -77,7 +50,7 @@ export default function App() {
     screen === 'welcome'
       ? 'Get started'
       : screen === 'device'
-        ? 'Finish setup'
+        ? 'Start test'
         : screen === 'ready'
           ? 'Start the test'
           : 'Continue'
@@ -89,13 +62,11 @@ export default function App() {
         ? true
         : screen === 'nda'
           ? detailsComplete && ndaAgreed
-          : screen === 'screener'
-            ? screenerComplete
-            : deviceComplete
+          : deviceReady
 
   const onFooterAction = () => {
     if (screen === 'welcome') goTo('nda')
-    else if (screen !== 'ready') goTo(nextScreen[screen])
+    else if (screen !== 'ready' && screen !== 'screenedOut') goTo(nextScreen[screen])
   }
 
   let panelContent: ReactNode
@@ -119,23 +90,23 @@ export default function App() {
       rightContent = <NdaStep onScrolledToEnd={setNdaScrolled} />
       break
     case 'screener':
-    case 'device':
-      panelContent = (
-        <ul className="instr-points">
-          {STEP_INSTRUCTIONS[screen].points.map((point) => (
-            <li key={point}>{point}</li>
-          ))}
-        </ul>
+      panelContent = <p className="instr-lede">{STEP_INSTRUCTIONS.screener.description}</p>
+      rightContent = (
+        <ScreenerStep
+          answers={screener}
+          onChange={(id, value) => setScreener((prev) => ({ ...prev, [id]: value }))}
+          onComplete={() => goTo(nextScreen.screener)}
+          onScreenedOut={() => goTo('screenedOut')}
+        />
       )
-      rightContent =
-        screen === 'screener' ? (
-          <ScreenerStep
-            answers={screener}
-            onChange={(id, value) => setScreener((prev) => ({ ...prev, [id]: value }))}
-          />
-        ) : (
-          <DeviceSetupStep checks={checks} onRun={runCheck} onRunAll={runAllChecks} />
-        )
+      break
+    case 'screenedOut':
+      panelContent = <ScreenedOutPanel />
+      rightContent = <img src={screenedOutScreen} alt="" className="welcome-screen" />
+      break
+    case 'device':
+      panelContent = <p className="instr-lede">{STEP_INSTRUCTIONS.device.description}</p>
+      rightContent = <DeviceSetupStep onReadyChange={setDeviceReady} />
       break
     case 'ready':
       panelContent = (
@@ -155,16 +126,24 @@ export default function App() {
         <SplitLayout
           left={
             <InstructionsPanel
-              title={STUDY.title}
+              title={
+                screen === 'screenedOut'
+                  ? 'Maybe next time!'
+                  : screen === 'device'
+                    ? 'Test setup'
+                    : STUDY.title
+              }
               footer={
                 <>
-                  <WuButton
-                    className="instr-footer-button"
-                    disabled={!canProceed}
-                    onClick={onFooterAction}
-                  >
-                    {footerLabel}
-                  </WuButton>
+                  {screen !== 'screener' && screen !== 'screenedOut' ? (
+                    <WuButton
+                      className="instr-footer-button"
+                      disabled={!canProceed}
+                      onClick={onFooterAction}
+                    >
+                      {footerLabel}
+                    </WuButton>
+                  ) : null}
                   <p className="instr-powered">
                     Powered by{' '}
                     <a href="https://www.questionpro.com" target="_blank" rel="noreferrer">
@@ -181,7 +160,10 @@ export default function App() {
           }
         >
           <div className="flow-content">
-            <div key={screen} className="flow-step">
+            <div
+              key={screen}
+              className={`flow-step ${screen === 'screener' ? 'flow-step--plain' : ''}`}
+            >
               {rightContent}
             </div>
           </div>
