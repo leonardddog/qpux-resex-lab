@@ -1,0 +1,46 @@
+{
+  "hash": "2ecefd21",
+  "configHash": "36f68190",
+  "lockfileHash": "9fd8057e",
+  "browserHash": "6ad43be7",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "971b33e0",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "73668271",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "3b0c0377",
+      "needsInterop": true
+    },
+    "@npm-questionpro/wick-ui-lib": {
+      "src": "../../node_modules/@npm-questionpro/wick-ui-lib/dist/wick-ui-lib/es/index.js",
+      "file": "@npm-questionpro_wick-ui-lib.js",
+      "fileHash": "ca8dc3c3",
+      "needsInterop": false
+    },
+    "react-dom": {
+      "src": "../../node_modules/react-dom/index.js",
+      "file": "react-dom.js",
+      "fileHash": "bee62730",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-I3YLYWDO": {
+      "file": "chunk-I3YLYWDO.js"
+    },
+    "chunk-BRFBK5S4": {
+      "file": "chunk-BRFBK5S4.js"
+    }
+  }
+}

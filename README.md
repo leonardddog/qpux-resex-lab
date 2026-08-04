@@ -78,7 +78,7 @@ Screens are split into two horizontal sections:
 1. **Welcome** — study intro and required permissions → *Get started*
 2. **Non-disclosure** — fill in name/email, scroll the agreement to the bottom, then accept the consent checkbox
 3. **Screener** — 4 radio questions (all required)
-4. **Device setup** — simulated camera/mic/speakers/screen-share checks
+4. **Device setup** — simulated camera/mic + screen-share checks in two groups
 5. **Ready** — summary + start-test CTA (placeholder)
 
 Each step's Continue button stays disabled until that step is complete.

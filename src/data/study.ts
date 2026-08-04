@@ -13,7 +13,7 @@ export const STUDY = {
 export const SETUP_STEPS: StudyStep[] = [
   { id: 'nda', label: 'Non-disclosure', caption: 'Keep it confidential', icon: 'wm-lock' },
   { id: 'screener', label: 'Screener', caption: 'A few quick questions', icon: 'wm-checklist' },
-  { id: 'device', label: 'Device setup', caption: 'Camera, mic & sound', icon: 'wm-settings' },
+  { id: 'device', label: 'Device setup', caption: 'Camera, mic & screen', icon: 'wm-settings' },
 ]
 
 export const SCREENER_QUESTIONS: ScreenerQuestion[] = [
@@ -21,27 +21,26 @@ export const SCREENER_QUESTIONS: ScreenerQuestion[] = [
     id: 'age',
     question: 'What is your age group?',
     options: ['Under 18', '18–24', '25–34', '35–44', '45–54', '55 or older'],
+    screenOutIf: '55 or older',
   },
   {
-    id: 'device',
-    question: 'Which device will you use for this test?',
-    hint: 'Please use the same device you are on right now.',
-    options: ['Desktop / Laptop', 'Tablet', 'Smartphone'],
-  },
-  {
-    id: 'frequency',
-    question: 'How often do you create or edit online surveys?',
+    id: 'softwareResearch',
+    question: 'How often do you search for or evaluate new software or online services?',
     options: ['Daily', 'Weekly', 'Monthly', 'A few times a year', 'Rarely or never'],
+    screenOutIf: 'Rarely or never',
   },
   {
-    id: 'experience',
-    question: 'How familiar are you with QuestionPro?',
-    options: [
-      'I use it regularly',
-      'I have used it a few times',
-      'I have seen it but never used it',
-      'This is my first time hearing about it',
-    ],
+    id: 'softwarePurchase',
+    question: 'Have you ever purchased or subscribed to a software or online service?',
+    hint: 'For example, a SaaS tool, app subscription or digital service.',
+    options: ['Yes, regularly', 'Yes, a few times', 'Yes, once', 'No, never'],
+    screenOutIf: 'No, never',
+  },
+  {
+    id: 'navigationConfidence',
+    question: 'How comfortable are you finding your way around new websites?',
+    options: ['Very comfortable', 'Comfortable', 'Somewhat comfortable', 'Not comfortable'],
+    screenOutIf: 'Not comfortable',
   },
 ]
 
@@ -70,23 +69,20 @@ export const DEVICE_CHECKS: DeviceCheck[] = [
     label: 'Camera',
     description: 'We record your face so we can see reactions while you test.',
     icon: 'wm-videocam',
+    group: 'cameraMic',
   },
   {
     id: 'microphone',
     label: 'Microphone',
     description: 'Please think aloud — we want to hear your thoughts out loud.',
     icon: 'wm-mic',
-  },
-  {
-    id: 'speakers',
-    label: 'Speakers / headphones',
-    description: 'Some tasks include audio prompts and instructions.',
-    icon: 'wm-volume-up',
+    group: 'cameraMic',
   },
   {
     id: 'screenShare',
     label: 'Screen sharing',
     description: 'We capture your screen so we can follow along with your clicks.',
     icon: 'wm-screen-share',
+    group: 'screenShare',
   },
 ]
