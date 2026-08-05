@@ -29,13 +29,3 @@ export const STEP_INSTRUCTIONS: Record<SetupStepId, StepInstructions> = {
     points: [],
   },
 }
-
-export const READY_INSTRUCTIONS: StepInstructions = {
-  title: 'What happens next',
-  points: [
-    'You will complete real tasks on the website while we watch.',
-    'Think aloud — share what you see and feel as you go.',
-    'There is no time pressure; you can pause and return later.',
-    'After the tasks, you answer a short post-test survey.',
-  ],
-}
