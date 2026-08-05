@@ -6,15 +6,21 @@ export type SetupScreen =
   | 'screener'
   | 'screenedOut'
   | 'device'
-  | 'ready'
 
-export type SetupStepId = Exclude<SetupScreen, 'welcome' | 'ready' | 'screenedOut'>
+export type TestScreen = 'loading' | 'test'
+
+export type SetupStepId = Exclude<SetupScreen, 'welcome' | 'screenedOut'>
 
 export interface StudyStep {
   id: SetupStepId
   label: string
   caption: string
   icon: IWuIcons
+}
+
+export interface TestTask {
+  title: string
+  description: string
 }
 
 export interface ParticipantDetails {

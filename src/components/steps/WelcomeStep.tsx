@@ -1,6 +1,7 @@
 import { WuChip, WuIcon } from '@npm-questionpro/wick-ui-lib'
 import { STUDY } from '../../data/study'
 import { iconStyle } from '../../lib/icon'
+import StopwatchIcon from '../icons/StopwatchIcon'
 
 export default function WelcomePanel() {
   return (
@@ -16,7 +17,9 @@ export default function WelcomePanel() {
           </p>
         </div>
         <WuChip size="md" variant="secondary" className="chip-icon instr-chip">
-          <WuIcon icon="wm-timer" style={{ ...iconStyle(12), transform: 'translateY(1px)' }} />
+          <span style={{ display: 'inline-flex', transform: 'translateY(1px)' }}>
+            <StopwatchIcon size={12} />
+          </span>
           About {STUDY.durationMinutes} minutes
         </WuChip>
       </div>

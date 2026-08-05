@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { WuButton, WuChip, WuIcon, WuSelect } from '@npm-questionpro/wick-ui-lib'
-import cameraEmpty from '../../../assets/camera-empty.svg'
+import cameraEmpty from '../../../assets/camera-empty.png'
 import { iconStyle } from '../../lib/icon'
 
 const DEVICE_GROUPS = [
@@ -87,6 +87,7 @@ export default function DeviceSetupStep({ onReadyChange }: DeviceSetupStepProps)
         micStreamRef.current = stream
         const audioCtx = new AudioContext()
         audioCtxRef.current = audioCtx
+        audioCtx.resume().catch(() => {})
         const source = audioCtx.createMediaStreamSource(stream)
         const analyser = audioCtx.createAnalyser()
         analyser.fftSize = 512
@@ -124,18 +125,21 @@ export default function DeviceSetupStep({ onReadyChange }: DeviceSetupStepProps)
         })
         .then((devices) => {
           if (cancelled) return
-          setCameras(
-            devices
-              .filter((device) => device.kind === 'videoinput')
-              .map((device) => ({ id: device.deviceId, label: device.label || 'Camera' })),
-          )
-          setMicrophones(
-            devices
-              .filter((device) => device.kind === 'audioinput')
-              .map((device) => ({ id: device.deviceId, label: device.label || 'Microphone' })),
-          )
+          const videoDevices = devices
+            .filter((device) => device.kind === 'videoinput')
+            .map((device) => ({ id: device.deviceId, label: device.label || 'Camera' }))
+          const audioDevices = devices
+            .filter((device) => device.kind === 'audioinput')
+            .map((device) => ({ id: device.deviceId, label: device.label || 'Microphone' }))
+          setCameras(videoDevices)
+          setMicrophones(audioDevices)
           setPermission('granted')
-          startCamera()
+          const defaultCamera = videoDevices[0]?.id ?? null
+          const defaultMic = audioDevices[0]?.id ?? null
+          setSelectedCamera(defaultCamera)
+          setSelectedMic(defaultMic)
+          if (defaultCamera) startCamera(defaultCamera)
+          if (defaultMic) startMic(defaultMic)
         })
         .catch(() => {
           if (!cancelled) setPermission('denied')
@@ -146,7 +150,7 @@ export default function DeviceSetupStep({ onReadyChange }: DeviceSetupStepProps)
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [startCamera])
+  }, [startCamera, startMic])
 
   useEffect(() => {
     return () => {

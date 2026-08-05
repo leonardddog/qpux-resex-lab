@@ -2,6 +2,7 @@ import type {
   DeviceCheck,
   ScreenerQuestion,
   StudyStep,
+  TestTask,
 } from '../types'
 
 export const STUDY = {
@@ -60,6 +61,25 @@ export const NDA_SECTIONS = [
   {
     heading: '4. Use of feedback',
     body: 'Your comments may be quoted internally in aggregated form. Personal information is never shared publicly and is handled in line with our privacy policy.',
+  },
+]
+
+export const TEST_TASKS: TestTask[] = [
+  {
+    title: 'Browse the homepage',
+    description: 'Take a look around the homepage and tell us, in your own words, what this website is about.',
+  },
+  {
+    title: 'Compare pricing plans',
+    description: 'Navigate to the pricing page and walk us through the plans. What stands out to you?',
+  },
+  {
+    title: 'Find help',
+    description: 'Find the help or support section and show us how you would look up an answer.',
+  },
+  {
+    title: 'Start a trial',
+    description: 'Start a free trial using fake details and describe how easy or difficult it felt.',
   },
 ]
 
