@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react'
-import { WuButton, WuChip } from '@npm-questionpro/wick-ui-lib'
+import {
+  WuButton,
+  WuChip,
+  WuIcon,
+  WuMenu,
+  WuMenuItem,
+  WuRadioGroup,
+  WuTab,
+} from '@npm-questionpro/wick-ui-lib'
+import type { TestStage } from '../../lib/stepNav'
 import { STUDY } from '../../data/study'
+import { iconStyle } from '../../lib/icon'
 import TestTimerV2 from './TestTimerV2'
 
 const COUNTDOWN_START = STUDY.durationMinutes * 60
@@ -26,13 +36,33 @@ const QUESTION_PARAGRAPHS = [
   '4. What is the feel of this site?',
 ]
 
-type Stage = 'frameOfMind' | 'impression' | 'questions'
+const TASKS = [
+  'Explore the landing page to find if they have a specialized solution for Customer Experience (CX).',
+  'Your director is keen on leveraging Artificial Intelligence to save time. Look around the landing page to see how QuestionPro integrates AI (like survey generation or text analysis) into their software.',
+]
 
-export default function TestStep() {
+type Stage = TestStage
+
+interface TestStepProps {
+  jumpTo?: TestStage | null
+  onJumpConsumed?: () => void
+  onFinishTest?: () => void
+}
+
+export default function TestStep({ jumpTo, onJumpConsumed, onFinishTest }: TestStepProps) {
   const [remaining, setRemaining] = useState(COUNTDOWN_START)
   const [shown, setShown] = useState(false)
   const [closing, setClosing] = useState(false)
   const [stage, setStage] = useState<Stage>('frameOfMind')
+  const [running, setRunning] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
+  const [instructionsClosing, setInstructionsClosing] = useState(false)
+  const [completion, setCompletion] = useState(false)
+  const [completionFromInline, setCompletionFromInline] = useState(false)
+  const [completionAnswer, setCompletionAnswer] = useState('')
+  const [usability, setUsability] = useState(false)
+  const [usabilityRating, setUsabilityRating] = useState<number | null>(null)
+  const [taskIndex, setTaskIndex] = useState(0)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -46,12 +76,29 @@ export default function TestStep() {
     return () => window.clearTimeout(timer)
   }, [])
 
+  useEffect(() => {
+    if (!jumpTo) return
+    setClosing(false)
+    setShown(true)
+    setRunning(false)
+    setShowInstructions(false)
+    setInstructionsClosing(false)
+    setCompletion(false)
+    setCompletionFromInline(false)
+    setCompletionAnswer('')
+    setUsability(false)
+    setUsabilityRating(null)
+    setTaskIndex(0)
+    setStage(jumpTo)
+    onJumpConsumed?.()
+  }, [jumpTo, onJumpConsumed])
+
   const goToImpression = () => {
     if (closing) return
     setStage('impression')
   }
 
-  const startImpression = () => {
+  const startImpressionTest = () => {
     if (closing) return
     setClosing(true)
     window.setTimeout(() => {
@@ -62,8 +109,81 @@ export default function TestStep() {
     }, 500)
   }
 
-  const chip =
-    stage === 'frameOfMind' ? 'Frame of mind' : stage === 'impression' ? 'Impression test' : 'Questions'
+  const goToTaskInstructions = () => {
+    if (closing) return
+    setStage('taskInstructions')
+  }
+
+  const startTask = () => {
+    if (closing) return
+    setClosing(true)
+    window.setTimeout(() => {
+      setShown(false)
+      setClosing(false)
+      setRunning(true)
+      setShowInstructions(false)
+      setInstructionsClosing(false)
+    }, 500)
+  }
+
+  const toggleInstructions = () => {
+    if (closing) return
+    if (showInstructions) {
+      if (instructionsClosing) return
+      setInstructionsClosing(true)
+      window.setTimeout(() => {
+        setShowInstructions(false)
+        setInstructionsClosing(false)
+      }, 300)
+    } else {
+      setInstructionsClosing(false)
+      setShowInstructions(true)
+    }
+  }
+
+  const finishTask = () => {
+    if (closing || completion) return
+    const hadInstructions = showInstructions && !instructionsClosing
+    setCompletionFromInline(hadInstructions)
+    setShowInstructions(false)
+    setInstructionsClosing(false)
+    setRunning(false)
+    setCompletion(true)
+  }
+
+  const goToNextTask = () => {
+    if (taskIndex !== 0 || closing) return
+    setClosing(true)
+    window.setTimeout(() => {
+      setTaskIndex(1)
+      setUsability(false)
+      setUsabilityRating(null)
+      setCompletion(false)
+      setCompletionAnswer('')
+      setCompletionFromInline(false)
+      setRunning(false)
+      setStage('taskInstructions')
+      setShown(true)
+      setClosing(false)
+    }, 500)
+  }
+
+  const onUsabilityNext = () => {
+    if (taskIndex < TASKS.length - 1) {
+      goToNextTask()
+    } else {
+      onFinishTest?.()
+    }
+  }
+
+  const OPTIONS_ITEMS = [
+    { icon: 'wc-language' as const, label: 'Change language' },
+    { icon: 'wm-error' as const, label: 'Report a problem' },
+    { icon: 'wm-support-agent' as const, label: 'Help' },
+    { icon: 'wm-logout' as const, label: 'Quit study' },
+  ]
+
+  const chip = stage === 'frameOfMind' ? 'Frame of mind' : 'Impression test'
   const paragraphs =
     stage === 'frameOfMind'
       ? [SCENARIO_INTRO, SCENARIO_BODY]
@@ -71,8 +191,130 @@ export default function TestStep() {
         ? IMPRESSION_PARAGRAPHS
         : QUESTION_PARAGRAPHS
   const buttonLabel =
-    stage === 'frameOfMind' ? 'Continue' : stage === 'impression' ? 'Start impression test' : null
-  const onButtonClick = stage === 'frameOfMind' ? goToImpression : startImpression
+    stage === 'taskInstructions' ? `Start task (${taskIndex + 1} of ${TASKS.length})` : stage === 'questions' ? 'Continue to tasks' : 'Continue'
+  const onButtonClick =
+    stage === 'frameOfMind'
+      ? goToImpression
+      : stage === 'impression'
+        ? startImpressionTest
+        : stage === 'questions'
+          ? goToTaskInstructions
+          : startTask
+
+  const taskTabs = (
+    <WuTab
+      className="instr-tabs"
+      defaultValue="instructions"
+      items={[
+        {
+          value: 'instructions',
+          Trigger: 'Instructions',
+          Content: (
+            <div className="instr-tabs-content">
+              <p className="test-instructions-text">{TASKS[taskIndex]}</p>
+            </div>
+          ),
+        },
+        {
+          value: 'frameOfMind',
+          Trigger: 'Frame of mind',
+          Content: (
+            <div className="instr-tabs-content">
+              <p className="test-instructions-text">{SCENARIO_INTRO}</p>
+              <p className="test-instructions-text">{SCENARIO_BODY}</p>
+            </div>
+          ),
+        },
+      ]}
+    />
+  )
+
+  const completionStep = (
+    <div className="test-completion-step">
+      <header className="instr-header">
+        <WuChip size="md" variant="secondary" className="instr-chip">
+          Completion
+        </WuChip>
+      </header>
+      <div className="instr-content">
+        <p className="test-completion-question">
+          Were you able to complete the task successfully?
+        </p>
+        <WuRadioGroup
+          className="test-completion-options"
+          value={completionAnswer}
+          onChange={setCompletionAnswer}
+          options={[
+            { value: 'yes', label: 'Yes, I completed it successfully' },
+            { value: 'no', label: 'No, I did not complete it successfully' },
+          ]}
+        />
+      </div>
+      <footer className="instr-footer">
+        <WuButton
+          className="instr-footer-button"
+          disabled={!completionAnswer}
+          onClick={() => setUsability(true)}
+        >
+          Next
+        </WuButton>
+        <p className="instr-powered">
+          Powered by{' '}
+          <a href="https://www.questionpro.com" target="_blank" rel="noreferrer">
+            QuestionPro
+          </a>
+        </p>
+      </footer>
+    </div>
+  )
+
+  const usabilityStep = (
+    <div className="test-completion-step">
+      <header className="instr-header">
+        <WuChip size="md" variant="secondary" className="instr-chip">
+          Usability
+        </WuChip>
+      </header>
+      <div className="instr-content">
+        <p className="test-completion-question">
+          On a scale of 1-5, ¿How was your experience with the interface?
+        </p>
+        <div className="test-usability-scale">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <label key={value} className="test-usability-option">
+              <input
+                type="radio"
+                name="usability"
+                value={value}
+                checked={usabilityRating === value}
+                onChange={() => setUsabilityRating(value)}
+              />
+              <span className="test-usability-label">{value}</span>
+            </label>
+          ))}
+        </div>
+        <div className="test-usability-legend">
+          <span>Very difficult</span>
+          <span>Very easy</span>
+        </div>
+      </div>
+      <footer className="instr-footer">
+        <WuButton
+          className="instr-footer-button"
+          disabled={usabilityRating === null}
+          onClick={onUsabilityNext}
+        >
+          {taskIndex < TASKS.length - 1 ? 'Next task' : 'Finish test'}
+        </WuButton>
+        <p className="instr-powered">
+          Powered by{' '}
+          <a href="https://www.questionpro.com" target="_blank" rel="noreferrer">
+            QuestionPro
+          </a>
+        </p>
+      </footer>
+    </div>
+  )
 
   return (
     <div className="test">
@@ -83,6 +325,15 @@ export default function TestStep() {
           title="Test website"
           allow="camera; microphone; display-capture"
         />
+        {running && showInstructions ? (
+          <div className="test-instr-inline">
+            <div
+              className={`test-instr-inline-panel${instructionsClosing ? ' is-closing' : ''}`}
+            >
+              {taskTabs}
+            </div>
+          </div>
+        ) : null}
         {shown ? (
           <div
             className={`test-instructions-overlay${closing ? ' is-closing' : ''}`}
@@ -91,18 +342,22 @@ export default function TestStep() {
               className={`test-instructions-panel${closing ? ' is-closing' : ''}`}
             >
               <div key={stage} className="test-instructions-step">
-                <header className="instr-header">
-                  <WuChip size="md" variant="secondary" className="instr-chip">
-                    {chip}
-                  </WuChip>
-                </header>
-                <div className="instr-content">
-                  {paragraphs.map((text) => (
-                    <p key={text} className="test-instructions-text">
-                      {text}
-                    </p>
-                  ))}
-                </div>
+                {stage === 'taskInstructions' ? taskTabs : (
+                  <>
+                    <header className="instr-header">
+                      <WuChip size="md" variant="secondary" className="instr-chip">
+                        {chip}
+                      </WuChip>
+                    </header>
+                    <div className="instr-content">
+                      {paragraphs.map((text) => (
+                        <p key={text} className="test-instructions-text">
+                          {text}
+                        </p>
+                      ))}
+                    </div>
+                  </>
+                )}
                 <footer className="instr-footer">
                   {buttonLabel ? (
                     <WuButton className="instr-footer-button" onClick={onButtonClick}>
@@ -120,9 +375,62 @@ export default function TestStep() {
             </div>
           </div>
         ) : null}
+        {completion ? (
+          <div
+            className={`test-completion-overlay${closing ? ' is-closing' : ''}`}
+          >
+            <div
+              className={`test-completion-panel${completionFromInline ? ' no-slide' : ''}${closing ? ' is-closing' : ''}`}
+            >
+              {usability ? usabilityStep : completionStep}
+            </div>
+          </div>
+        ) : null}
       </div>
       <div className="test-tools">
+        {running ? (
+          <div className="test-tools-actions">
+            <WuButton onClick={finishTask}>Finish task</WuButton>
+            <WuButton
+              variant="secondary"
+              Icon={
+                <WuIcon
+                  icon={showInstructions ? 'wm-visibility-off' : 'wm-visibility'}
+                  style={iconStyle(16)}
+                />
+              }
+              onClick={toggleInstructions}
+            >
+              Instructions
+            </WuButton>
+          </div>
+        ) : null}
         <TestTimerV2 remaining={remaining} total={COUNTDOWN_START} />
+        <div className="test-tools-menu">
+          <WuMenu
+            position={{ side: 'top', align: 'end', sideOffset: 8 }}
+            Trigger={
+              <button type="button" className="test-tools-more" aria-label="More options">
+                <WuIcon icon="wm-more-vert" style={iconStyle(20)} />
+              </button>
+            }
+          >
+            {OPTIONS_ITEMS.map((item) => (
+              <WuMenuItem
+                key={item.label}
+                className="test-tools-menu-item"
+                Icon={
+                  <WuIcon
+                    icon={item.icon}
+                    style={iconStyle(item.icon === 'wc-language' ? 19 : 16)}
+                  />
+                }
+              >
+                {item.label}
+              </WuMenuItem>
+            ))}
+          </WuMenu>
+        </div>
       </div>
     </div>
   )

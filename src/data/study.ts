@@ -1,5 +1,6 @@
 import type {
   DeviceCheck,
+  PostTestQuestion,
   ScreenerQuestion,
   StudyStep,
   TestTask,
@@ -42,6 +43,37 @@ export const SCREENER_QUESTIONS: ScreenerQuestion[] = [
     question: 'How comfortable are you finding your way around new websites?',
     options: ['Very comfortable', 'Comfortable', 'Somewhat comfortable', 'Not comfortable'],
     screenOutIf: 'Not comfortable',
+  },
+]
+
+export const POST_TEST_QUESTIONS: PostTestQuestion[] = [
+  {
+    id: 'ease',
+    question: 'How easy or difficult was it to complete the tasks?',
+    options: ['Very difficult', 'Difficult', 'Neutral', 'Easy', 'Very easy'],
+  },
+  {
+    id: 'usefulFeatures',
+    question: 'Which parts of the QuestionPro website did you find useful?',
+    hint: 'Select at least two options.',
+    type: 'multiple',
+    options: ['Navigation menu', 'Survey builder tools', 'Task instructions', 'Help & documentation'],
+  },
+  {
+    id: 'recommend',
+    question: 'How likely are you to recommend QuestionPro to others?',
+    type: 'slider',
+    min: 0,
+    max: 10,
+    step: 1,
+    minLabel: 'Very unlikely',
+    maxLabel: 'Very likely',
+  },
+  {
+    id: 'favorite',
+    question: 'What did you like most about the QuestionPro website?',
+    type: 'text',
+    placeholder: 'Share your thoughts…',
   },
 ]
 
