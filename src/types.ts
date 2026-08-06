@@ -7,7 +7,7 @@ export type SetupScreen =
   | 'screenedOut'
   | 'device'
 
-export type TestScreen = 'loading' | 'test'
+export type TestScreen = 'loading' | 'test' | 'postTest'
 
 export type SetupStepId = Exclude<SetupScreen, 'welcome' | 'screenedOut'>
 
@@ -29,6 +29,24 @@ export interface ParticipantDetails {
 }
 
 export type ScreenerAnswers = Record<string, string>
+
+export type PostTestQuestionType = 'single' | 'multiple' | 'slider' | 'text'
+
+export interface PostTestQuestion {
+  id: string
+  question: string
+  type?: PostTestQuestionType
+  options?: string[]
+  hint?: string
+  placeholder?: string
+  min?: number
+  max?: number
+  step?: number
+  minLabel?: string
+  maxLabel?: string
+}
+
+export type PostTestAnswers = Record<string, string | string[]>
 
 export interface ScreenerQuestion {
   id: string
