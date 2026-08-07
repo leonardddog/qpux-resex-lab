@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { WuButton, WuChip } from '@npm-questionpro/wick-ui-lib'
-import { POST_TEST_QUESTIONS } from '../../data/study'
+import { POST_TEST_QUESTIONS, SUS_QUESTIONS, SUS_SCALE } from '../../data/study'
 import type { PostTestAnswers, PostTestQuestion } from '../../types'
 
 interface PostTestSurveyProps {
@@ -9,117 +9,147 @@ interface PostTestSurveyProps {
 }
 
 export default function PostTestSurvey({ answers, onChange }: PostTestSurveyProps) {
-  const [active, setActive] = useState(0)
-  const listRef = useRef<HTMLDivElement>(null)
-  const settleTimerRef = useRef<number | null>(null)
+  const groupRef = useRef<HTMLDivElement>(null)
+  const susRef = useRef<HTMLDivElement>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [stage, setStage] = useState<'survey' | 'sus'>('survey')
+  const [susAnswers, setSusAnswers] = useState<Record<number, number>>({})
 
-  useEffect(() => {
-    const list = listRef.current
-    if (!list) return
-    const el = list.children[active] as HTMLElement | undefined
-    if (!el) return
-    const listTop = list.getBoundingClientRect().top
-    const elRect = el.getBoundingClientRect()
-    const relTop = elRect.top - listTop
-    const clientH = list.clientHeight
-    const maxScroll = list.scrollHeight - clientH
-    const topTarget = list.scrollTop + relTop
-    const centerTarget = list.scrollTop + relTop - (clientH - elRect.height) / 2
-    const target = topTarget <= maxScroll ? topTarget : Math.max(0, Math.min(maxScroll, centerTarget))
-    list.scrollTo({ top: target, behavior: 'smooth' })
-  }, [active])
-
-  useEffect(() => {
-    const list = listRef.current
-    if (!list) return
-    const updatePadding = () => {
-      const lastEl = list.children[list.children.length - 1] as HTMLElement | undefined
-      if (!lastEl) return
-      list.style.paddingBottom = '0px'
-      const scrollable = list.scrollHeight > list.clientHeight
-      const pad = scrollable ? Math.max(24, Math.round((list.clientHeight - lastEl.offsetHeight) / 2)) : 0
-      list.style.paddingBottom = `${pad}px`
-    }
-    updatePadding()
-    const lastEl = list.children[list.children.length - 1] as HTMLElement | undefined
-    const ro = new ResizeObserver(updatePadding)
-    ro.observe(list)
-    if (lastEl) ro.observe(lastEl)
-    return () => ro.disconnect()
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current)
-    }
-  }, [])
-
-  const activateAtTop = () => {
-    const list = listRef.current
-    if (!list) return
-    const listRect = list.getBoundingClientRect()
-    const activeEl = list.children[active] as HTMLElement | undefined
-    if (activeEl) {
-      const r = activeEl.getBoundingClientRect()
-      const inView = r.bottom > listRect.top && r.top < listRect.bottom
-      const nearTop = r.top - listRect.top <= 40
-      if (inView && !nearTop) return
-    }
-    const listTop = listRect.top
-    let current = POST_TEST_QUESTIONS.length - 1
-    for (let i = 0; i < list.children.length; i += 1) {
-      const el = list.children[i] as HTMLElement
-      if (el.getBoundingClientRect().top - listTop >= -8) {
-        current = i
-        break
-      }
-    }
-    const question = POST_TEST_QUESTIONS[current]
+  const allAnswered = POST_TEST_QUESTIONS.every((question) => {
     const value = answers[question.id]
-    const answered = Array.isArray(value) ? value.length > 0 : (value ?? '') !== ''
-    if (answered && current !== active) setActive(current)
-  }
+    return Array.isArray(value) ? value.length > 0 : typeof value === 'string' && value.trim() !== ''
+  })
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!e.isTrusted) return
-    if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current)
-    settleTimerRef.current = window.setTimeout(() => {
-      settleTimerRef.current = null
-      activateAtTop()
-    }, 150)
-  }
+  const susComplete = SUS_QUESTIONS.every((_, index) => susAnswers[index] !== undefined)
 
-  const advanceFrom = (index: number) => {
-    setActive(Math.min(index + 1, POST_TEST_QUESTIONS.length - 1))
-  }
+  useEffect(() => {
+    const container = stage === 'survey' ? groupRef.current : susRef.current
+    if (!container) return
+    const scroller = container.closest<HTMLElement>('.split-right')
+    if (!scroller) return
 
-  const setValue = (id: string, value: string | string[]) => onChange(id, value)
+    const itemSelector = stage === 'survey' ? '.post-survey-question' : '.sus-item'
+
+    const update = () => {
+      const items = container.querySelectorAll<HTMLElement>(itemSelector)
+      if (items.length === 0) return
+      const rect = scroller.getBoundingClientRect()
+      const line = rect.top + rect.height / 2
+      const lower: number[] = []
+      let prevBottom = -Infinity
+      items.forEach((item) => {
+        const itemRect = item.getBoundingClientRect()
+        lower.push(prevBottom === -Infinity ? -Infinity : (prevBottom + itemRect.top) / 2)
+        prevBottom = itemRect.bottom
+      })
+      let active = 0
+      for (let i = items.length - 1; i >= 0; i--) {
+        const upper = i < items.length - 1 ? lower[i + 1] : Infinity
+        if (line >= lower[i] && line < upper) {
+          active = i
+          break
+        }
+      }
+      if (scroller.scrollTop <= 0) active = 0
+      if (scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1) {
+        active = items.length - 1
+      }
+      setActiveIndex(active)
+    }
+
+    update()
+    scroller.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      scroller.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [stage])
 
   return (
     <div className="post-survey">
-      <WuChip size="md" variant="primary" className="post-survey-chip">
-        Post-test survey
-      </WuChip>
-      <div className="post-survey-list" ref={listRef} onScroll={handleScroll}>
-        {POST_TEST_QUESTIONS.map((question, index) => (
-          <section
-            key={question.id}
-            className={`post-survey-question ${index === active ? 'is-focused' : ''}`}
-            onClick={() => setActive(index)}
-          >
-            <h3 className="screener-question post-survey-question-text">
-              {index + 1}. {question.question}
-            </h3>
-            {question.hint ? <p className="screener-hint">{question.hint}</p> : null}
-            <QuestionControl
-              question={question}
-              value={answers[question.id]}
-              onChange={(value) => setValue(question.id, value)}
-              onAnswered={() => advanceFrom(index)}
-            />
-          </section>
-        ))}
+      <div className="post-survey-chip-group">
+        <WuChip size="md" variant="primary" className="post-survey-chip">
+          {stage === 'survey' ? 'Post-test survey' : 'Usability questionnaire'}
+        </WuChip>
       </div>
+      {stage === 'survey' ? (
+        <div className="post-survey-question-group" ref={groupRef}>
+          {POST_TEST_QUESTIONS.map((question, index) => (
+            <Fragment key={question.id}>
+              <div className={activeIndex === index ? 'post-survey-question is-active' : 'post-survey-question'}>
+                <h3 className="screener-question">
+                  {index + 1}. {question.question}
+                </h3>
+                {question.hint ? <p className="screener-hint">{question.hint}</p> : null}
+                <QuestionControl
+                  question={question}
+                  value={answers[question.id]}
+                  onChange={(value) => onChange(question.id, value)}
+                />
+              </div>
+              {index < POST_TEST_QUESTIONS.length - 1 ? (
+                <div className="post-survey-separator" aria-hidden="true" />
+              ) : null}
+            </Fragment>
+          ))}
+          <div className="post-survey-actions">
+            <WuButton
+              className="post-survey-continue"
+              disabled={!allAnswered}
+              onClick={() => {
+                groupRef.current?.closest<HTMLElement>('.split-right')?.scrollTo({ top: 0 })
+                setStage('sus')
+              }}
+            >
+              Continue
+            </WuButton>
+          </div>
+          <div className="post-survey-end" aria-hidden="true" />
+        </div>
+      ) : (
+        <div className="sus" ref={susRef}>
+          {SUS_QUESTIONS.map((statement, index) => (
+            <Fragment key={statement}>
+              <div className={activeIndex === index ? 'sus-item is-active' : 'sus-item'}>
+                <p className="screener-question">
+                  {index + 1}. {statement}
+                </p>
+                <div className="sus-scale">
+                  {Array.from(
+                    { length: SUS_SCALE.max - SUS_SCALE.min + 1 },
+                    (_, i) => SUS_SCALE.min + i,
+                  ).map((value) => (
+                    <label key={value} className="sus-option">
+                      <input
+                        type="radio"
+                        name={`sus-${index}`}
+                        value={value}
+                        checked={susAnswers[index] === value}
+                        onChange={() => setSusAnswers((prev) => ({ ...prev, [index]: value }))}
+                      />
+                      <span className="sus-option-label">{value}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="sus-legend">
+                  <span>Strongly disagree</span>
+                  <span>Strongly agree</span>
+                </div>
+              </div>
+              {index < SUS_QUESTIONS.length - 1 ? (
+                <div className="post-survey-separator" aria-hidden="true" />
+              ) : null}
+            </Fragment>
+          ))}
+          <div className="post-survey-actions">
+            <WuButton className="post-survey-continue" disabled={!susComplete}>
+              Submit
+            </WuButton>
+          </div>
+          <div className="post-survey-end" aria-hidden="true" />
+        </div>
+      )}
     </div>
   )
 }
@@ -128,26 +158,25 @@ interface QuestionControlProps {
   question: PostTestQuestion
   value?: string | string[]
   onChange: (value: string | string[]) => void
-  onAnswered: () => void
 }
 
-function QuestionControl({ question, value, onChange, onAnswered }: QuestionControlProps) {
+function QuestionControl({ question, value, onChange }: QuestionControlProps) {
   switch (question.type) {
     case 'multiple':
-      return <MultipleControl question={question} value={value} onChange={onChange} onAnswered={onAnswered} />
-    case 'slider':
-      return <SliderControl question={question} value={value} onChange={onChange} onAnswered={onAnswered} />
+      return <MultipleControl question={question} value={value} onChange={onChange} />
     case 'text':
-      return <TextControl question={question} value={value} onChange={onChange} onAnswered={onAnswered} />
+      return <TextControl question={question} value={value} onChange={onChange} />
+    case 'slider':
+      return <SliderControl question={question} value={value} onChange={onChange} />
     default:
-      return <SingleControl question={question} value={value} onChange={onChange} onAnswered={onAnswered} />
+      return <SingleControl question={question} value={value} onChange={onChange} />
   }
 }
 
-function SingleControl({ question, value, onChange, onAnswered }: QuestionControlProps) {
+function SingleControl({ question, value, onChange }: QuestionControlProps) {
   const selected = typeof value === 'string' ? value : ''
   return (
-    <fieldset className="screener-options" onClick={(e) => e.stopPropagation()}>
+    <fieldset className="screener-options">
       {(question.options ?? []).map((option) => (
         <label key={option} className="screener-option">
           <input
@@ -155,10 +184,7 @@ function SingleControl({ question, value, onChange, onAnswered }: QuestionContro
             name={question.id}
             value={option}
             checked={selected === option}
-            onChange={() => {
-              onChange(option)
-              onAnswered()
-            }}
+            onChange={() => onChange(option)}
           />
           <span className="screener-indicator" aria-hidden="true" />
           <span className="screener-label">{option}</span>
@@ -168,7 +194,7 @@ function SingleControl({ question, value, onChange, onAnswered }: QuestionContro
   )
 }
 
-function MultipleControl({ question, value, onChange, onAnswered }: QuestionControlProps) {
+function MultipleControl({ question, value, onChange }: QuestionControlProps) {
   const selected = Array.isArray(value) ? value : []
   const toggle = (option: string) => {
     const next = selected.includes(option)
@@ -177,7 +203,7 @@ function MultipleControl({ question, value, onChange, onAnswered }: QuestionCont
     onChange(next)
   }
   return (
-    <fieldset className="screener-options" onClick={(e) => e.stopPropagation()}>
+    <fieldset className="screener-options">
       {(question.options ?? []).map((option) => (
         <label key={option} className="screener-option">
           <input
@@ -191,31 +217,29 @@ function MultipleControl({ question, value, onChange, onAnswered }: QuestionCont
           <span className="screener-label">{option}</span>
         </label>
       ))}
-      <div className="screener-actions post-survey-actions">
-        <WuButton className="screener-next" disabled={selected.length < 2} onClick={onAnswered}>
-          Continue
-        </WuButton>
-      </div>
     </fieldset>
   )
 }
 
-function SliderControl({ question, value, onChange, onAnswered }: QuestionControlProps) {
-  const interacted = useRef(false)
-  const min = question.min ?? 0
-  const max = question.max ?? 10
-  const current = typeof value === 'string' ? Number(value) : min
-  const percent = max === min ? 0 : ((current - min) / (max - min)) * 100
-  const commit = () => {
-    if (!interacted.current) return
-    interacted.current = false
-    onAnswered()
-  }
+function TextControl({ question, value, onChange }: QuestionControlProps) {
+  const current = typeof value === 'string' ? value : ''
   return (
-    <div className="post-survey-slider" onClick={(e) => e.stopPropagation()}>
-      <div className="post-survey-slider-readout">
-        <span className="post-survey-slider-value">{current}</span>
-      </div>
+    <textarea
+      className="post-survey-textarea"
+      placeholder={question.placeholder}
+      value={current}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  )
+}
+
+function SliderControl({ question, value, onChange }: QuestionControlProps) {
+  const min = question.min ?? 0
+  const max = question.max ?? 100
+  const current = typeof value === 'string' ? Number(value) : Math.round((min + max) / 2)
+  const percent = max === min ? 0 : ((current - min) / (max - min)) * 100
+  return (
+    <div className="post-survey-slider">
       <input
         type="range"
         className="post-survey-range"
@@ -224,36 +248,14 @@ function SliderControl({ question, value, onChange, onAnswered }: QuestionContro
         max={max}
         step={question.step ?? 1}
         value={current}
-        onChange={(e) => {
-          interacted.current = true
-          onChange(e.target.value)
-        }}
-        onMouseUp={commit}
-        onTouchEnd={commit}
-        onKeyUp={commit}
-      />
-      <div className="post-survey-slider-labels">
-        <span>{question.minLabel}</span>
-        <span>{question.maxLabel}</span>
-      </div>
-    </div>
-  )
-}
-
-function TextControl({ question, value, onChange, onAnswered }: QuestionControlProps) {
-  const current = typeof value === 'string' ? value : ''
-  return (
-    <div className="post-survey-text-control" onClick={(e) => e.stopPropagation()}>
-      <textarea
-        className="post-survey-textarea"
-        placeholder={question.placeholder}
-        value={current}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={current}
         onChange={(e) => onChange(e.target.value)}
       />
-      <div className="screener-actions post-survey-actions">
-        <WuButton className="screener-next" disabled={current.trim() === ''} onClick={onAnswered}>
-          Next
-        </WuButton>
+      <div className="post-survey-slider-value">
+        <span className="post-survey-slider-number">{current}</span>
+        <span className="post-survey-slider-denominator">/{max}</span>
       </div>
     </div>
   )

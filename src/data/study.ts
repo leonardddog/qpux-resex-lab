@@ -48,33 +48,63 @@ export const SCREENER_QUESTIONS: ScreenerQuestion[] = [
 
 export const POST_TEST_QUESTIONS: PostTestQuestion[] = [
   {
-    id: 'ease',
-    question: 'How easy or difficult was it to complete the tasks?',
-    options: ['Very difficult', 'Difficult', 'Neutral', 'Easy', 'Very easy'],
+    id: 'whatQuestionProDoes',
+    question:
+      'Based on your review of the landing page, which of the following best describes what QuestionPro does?',
+    type: 'single',
+    options: [
+      'An all-in-one research & experience management platform (surveys, CX, EX)',
+      'A basic form builder',
+      'A customer relationship management (CRM) tool',
+      'A website builder',
+      'Not sure',
+    ],
   },
   {
-    id: 'usefulFeatures',
-    question: 'Which parts of the QuestionPro website did you find useful?',
-    hint: 'Select at least two options.',
+    id: 'overwhelmingElements',
+    question: 'Which element on the landing page felt the most overwhelming or confusing?',
+    hint: 'Select all that apply.',
     type: 'multiple',
-    options: ['Navigation menu', 'Survey builder tools', 'Task instructions', 'Help & documentation'],
+    options: [
+      'The number of products and features listed',
+      'The navigation menu',
+      'The hero section messaging',
+      'Customer stories and logos',
+      'Pricing information',
+      'Nothing felt overwhelming',
+    ],
   },
   {
-    id: 'recommend',
-    question: 'How likely are you to recommend QuestionPro to others?',
-    type: 'slider',
-    min: 0,
-    max: 10,
-    step: 1,
-    minLabel: 'Very unlikely',
-    maxLabel: 'Very likely',
-  },
-  {
-    id: 'favorite',
-    question: 'What did you like most about the QuestionPro website?',
+    id: 'organizedOrOverwhelming',
+    question:
+      'QuestionPro offers a lot of different features (Surveys, CX, EX, Audience panels). Did the landing page feel organized, or did it feel overwhelming? Why?',
     type: 'text',
     placeholder: 'Share your thoughts…',
   },
+  {
+    id: 'enterpriseTool',
+    question:
+      'It was clear that QuestionPro is a high-level research/enterprise tool, not just a basic form builder.',
+    type: 'slider',
+    min: 0,
+    max: 100,
+    step: 1,
+  },
+]
+
+export const SUS_SCALE = { min: 1, max: 5 }
+
+export const SUS_QUESTIONS = [
+  'I think that I would like to use this system frequently.',
+  'I found the system unnecessarily complex.',
+  'I thought the system was easy to use.',
+  'I think that I would need the support of a technical person to be able to use this system.',
+  'I found the various functions in this system were well integrated.',
+  'I thought there was too much inconsistency in this system.',
+  'I would imagine that most people would learn to use this system very quickly.',
+  'I found the system very cumbersome to use.',
+  'I felt very confident using the system.',
+  'I needed to learn a lot of things before I could get going with this system.',
 ]
 
 export const NDA_SECTIONS = [
