@@ -10,8 +10,7 @@ export function PostTestPanel() {
   const [uploadComplete, setUploadComplete] = useState(false)
 
   useEffect(() => {
-    if (!showProgress || uploadComplete) return
-    setUploadPercent(0)
+    if (uploadComplete) return
     const timer = window.setInterval(() => {
       setUploadPercent((prev) => {
         if (prev >= 100) {
@@ -22,7 +21,11 @@ export function PostTestPanel() {
       })
     }, 350)
     return () => window.clearInterval(timer)
-  }, [showProgress, uploadComplete])
+  }, [uploadComplete])
+
+  useEffect(() => {
+    if (uploadPercent >= 100) setUploadComplete(true)
+  }, [uploadPercent])
 
   return (
     <div className="post-test-panel">
@@ -73,15 +76,19 @@ export function PostTestPanel() {
         ) : (
           <>
             <p className="instr-disclaimer">
-              Note: We&apos;re saving your recording in the background, don&apos;t worry.
+              {uploadComplete
+                ? 'Your session has been submitted!'
+                : "Note: We're saving your recording in the background, don't worry."}
             </p>
-            <WuButton
-              className="post-progress-toggle post-progress-toggle--see"
-              variant="secondary"
-              onClick={() => setShowProgress(true)}
-            >
-              See progress
-            </WuButton>
+            {!uploadComplete ? (
+              <WuButton
+                className="post-progress-toggle post-progress-toggle--see"
+                variant="secondary"
+                onClick={() => setShowProgress(true)}
+              >
+                See progress
+              </WuButton>
+            ) : null}
           </>
         )}
       </div>

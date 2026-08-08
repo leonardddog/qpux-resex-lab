@@ -7,7 +7,7 @@ export type SetupScreen =
   | 'screenedOut'
   | 'device'
 
-export type TestScreen = 'loading' | 'test' | 'postTest'
+export type TestScreen = 'loading' | 'test' | 'postTest' | 'thankYou'
 
 export type SetupStepId = Exclude<SetupScreen, 'welcome' | 'screenedOut'>
 

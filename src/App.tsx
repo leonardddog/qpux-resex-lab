@@ -14,11 +14,13 @@ import { STUDY } from './data/study'
 import { STEP_INSTRUCTIONS } from './data/instructions'
 import welcomeScreen from '../assets/welcome-screen.svg'
 import screenedOutScreen from '../assets/screened-out.svg'
+import thankYouScreen from '../assets/thank-you.png'
 import DeviceSetupStep from './components/steps/DeviceSetupStep'
 import LoaderStep from './components/steps/LoaderStep'
 import NdaStep, { NdaPanel } from './components/steps/NdaStep'
 import ScreenerStep from './components/steps/ScreenerStep'
 import ScreenedOutPanel from './components/steps/ScreenedOutStep'
+import ThankYouPanel from './components/steps/ThankYouStep'
 import TestStep from './components/steps/TestStep'
 import { PostTestPanel } from './components/steps/PostTestStep'
 import PostTestSurvey from './components/steps/PostTestSurvey'
@@ -192,8 +194,13 @@ export default function App() {
         <PostTestSurvey
           answers={postAnswers}
           onChange={(id, value) => setPostAnswers((prev) => ({ ...prev, [id]: value }))}
+          onSubmit={() => goTo('thankYou')}
         />
       )
+      break
+    case 'thankYou':
+      panelContent = <ThankYouPanel />
+      rightContent = <img src={thankYouScreen} alt="" className="welcome-screen" />
       break
   }
 
@@ -212,11 +219,16 @@ export default function App() {
                       ? 'Test setup'
                       : screen === 'postTest'
                         ? 'Great job!'
-                        : STUDY.title
+                        : screen === 'thankYou'
+                          ? 'Thank you!'
+                          : STUDY.title
                 }
                 footer={
                   <>
-                    {screen !== 'screener' && screen !== 'screenedOut' && screen !== 'postTest' ? (
+                    {screen !== 'screener' &&
+                    screen !== 'screenedOut' &&
+                    screen !== 'postTest' &&
+                    screen !== 'thankYou' ? (
                       <WuButton
                         className="instr-footer-button"
                         disabled={!canProceed}

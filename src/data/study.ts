@@ -75,9 +75,9 @@ export const POST_TEST_QUESTIONS: PostTestQuestion[] = [
     ],
   },
   {
-    id: 'organizedOrOverwhelming',
+    id: 'overallExperience',
     question:
-      'QuestionPro offers a lot of different features (Surveys, CX, EX, Audience panels). Did the landing page feel organized, or did it feel overwhelming? Why?',
+      'In your own words, describe the overall experience of browsing the landing page — what stood out most to you?',
     type: 'text',
     placeholder: 'Share your thoughts…',
   },
@@ -86,9 +86,11 @@ export const POST_TEST_QUESTIONS: PostTestQuestion[] = [
     question:
       'It was clear that QuestionPro is a high-level research/enterprise tool, not just a basic form builder.',
     type: 'slider',
-    min: 0,
-    max: 100,
+    min: 1,
+    max: 5,
     step: 1,
+    minLabel: 'Strongly disagree',
+    maxLabel: 'Strongly agree',
   },
 ]
 

@@ -1425,23 +1425,25 @@ body {
   transform: scale(1.1);
 }
 
-.post-survey-slider-value {
+.post-survey-scale-numbers {
   display: flex;
-  align-items: baseline;
-  gap: 2px;
-  margin: 5px 0 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: #545e6b;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1;
+  color: #9b9b9b;
 }
 
-.post-survey-slider-number {
-  font-variant-numeric: tabular-nums;
+.post-survey-scale-numbers .is-active {
+  color: rgb(10, 134, 234);
+  font-weight: 600;
 }
 
-.post-survey-slider-denominator {
-  font-size: 16px;
-  font-weight: 400;
+.post-survey-slider-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
   color: #9b9b9b;
 }
 
