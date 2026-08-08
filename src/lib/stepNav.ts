@@ -22,4 +22,5 @@ export const STEP_MENU_ITEMS: StepMenuItem[] = [
   { id: 'test/questions', label: 'Follow-up questions', group: 'Test' },
   { id: 'test/taskInstructions', label: 'Task instructions', group: 'Test' },
   { id: 'postTest', label: 'Post test', group: 'Post' },
+  { id: 'thankYou', label: 'Thank you', group: 'Post' },
 ]

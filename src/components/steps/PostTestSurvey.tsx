@@ -6,9 +6,10 @@ import type { PostTestAnswers, PostTestQuestion } from '../../types'
 interface PostTestSurveyProps {
   answers: PostTestAnswers
   onChange: (id: string, value: string | string[]) => void
+  onSubmit: () => void
 }
 
-export default function PostTestSurvey({ answers, onChange }: PostTestSurveyProps) {
+export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTestSurveyProps) {
   const groupRef = useRef<HTMLDivElement>(null)
   const susRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -66,6 +67,37 @@ export default function PostTestSurvey({ answers, onChange }: PostTestSurveyProp
     }
   }, [stage])
 
+  const isAnswered = (value: string | string[] | undefined) => {
+    if (Array.isArray(value)) return value.length > 0
+    return typeof value === 'string' && value.trim() !== ''
+  }
+
+  const handleSurveyAnswer = (questionIndex: number, id: string, value: string | string[]) => {
+    onChange(id, value)
+    const nextIndex = POST_TEST_QUESTIONS.findIndex(
+      (question, i) => i > questionIndex && !isAnswered(answers[question.id]),
+    )
+    if (nextIndex > questionIndex) {
+      requestAnimationFrame(() => {
+        groupRef.current
+          ?.querySelectorAll<HTMLElement>('.post-survey-question')[nextIndex]
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    }
+  }
+
+  const handleSusAnswer = (index: number, value: number) => {
+    setSusAnswers((prev) => ({ ...prev, [index]: value }))
+    const nextIndex = SUS_QUESTIONS.findIndex((_, i) => i > index && susAnswers[i] === undefined)
+    if (nextIndex > index) {
+      requestAnimationFrame(() => {
+        susRef.current
+          ?.querySelectorAll<HTMLElement>('.sus-item')[nextIndex]
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    }
+  }
+
   return (
     <div className="post-survey">
       <div className="post-survey-chip-group">
@@ -85,7 +117,7 @@ export default function PostTestSurvey({ answers, onChange }: PostTestSurveyProp
                 <QuestionControl
                   question={question}
                   value={answers[question.id]}
-                  onChange={(value) => onChange(question.id, value)}
+                  onChange={(value) => handleSurveyAnswer(index, question.id, value)}
                 />
               </div>
               {index < POST_TEST_QUESTIONS.length - 1 ? (
@@ -126,7 +158,7 @@ export default function PostTestSurvey({ answers, onChange }: PostTestSurveyProp
                         name={`sus-${index}`}
                         value={value}
                         checked={susAnswers[index] === value}
-                        onChange={() => setSusAnswers((prev) => ({ ...prev, [index]: value }))}
+                        onChange={() => handleSusAnswer(index, value)}
                       />
                       <span className="sus-option-label">{value}</span>
                     </label>
@@ -143,7 +175,7 @@ export default function PostTestSurvey({ answers, onChange }: PostTestSurveyProp
             </Fragment>
           ))}
           <div className="post-survey-actions">
-            <WuButton className="post-survey-continue" disabled={!susComplete}>
+            <WuButton className="post-survey-continue" disabled={!susComplete} onClick={onSubmit}>
               Submit
             </WuButton>
           </div>
@@ -236,8 +268,11 @@ function TextControl({ question, value, onChange }: QuestionControlProps) {
 function SliderControl({ question, value, onChange }: QuestionControlProps) {
   const min = question.min ?? 0
   const max = question.max ?? 100
+  const step = question.step ?? 1
   const current = typeof value === 'string' ? Number(value) : Math.round((min + max) / 2)
   const percent = max === min ? 0 : ((current - min) / (max - min)) * 100
+  const steps: number[] = []
+  for (let v = min; v <= max; v += step) steps.push(v)
   return (
     <div className="post-survey-slider">
       <input
@@ -246,16 +281,23 @@ function SliderControl({ question, value, onChange }: QuestionControlProps) {
         style={{ ['--fill' as string]: `${percent}%` }}
         min={min}
         max={max}
-        step={question.step ?? 1}
+        step={step}
         value={current}
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={current}
         onChange={(e) => onChange(e.target.value)}
       />
-      <div className="post-survey-slider-value">
-        <span className="post-survey-slider-number">{current}</span>
-        <span className="post-survey-slider-denominator">/{max}</span>
+      <div className="post-survey-scale-numbers" aria-hidden="true">
+        {steps.map((v) => (
+          <span key={v} className={v === current ? 'is-active' : ''}>
+            {v}
+          </span>
+        ))}
+      </div>
+      <div className="post-survey-slider-legend">
+        <span>{question.minLabel ?? 'Strongly disagree'}</span>
+        <span>{question.maxLabel ?? 'Strongly agree'}</span>
       </div>
     </div>
   )
