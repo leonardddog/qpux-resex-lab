@@ -1,8 +1,9 @@
-export default function ThankYouPanel() {
+export default function ThankYouPanel({ submitted = true }: { submitted?: boolean }) {
   return (
     <p className="instr-lede">
-      We value the time and thoughtfulness you&apos;ve brought to this. Your feedback plays a real
-      role in shaping better experiences.
+      {submitted
+        ? 'Your session has been submitted. Your feedback will directly shape how we improve the experience you just tested.'
+        : 'Your session has ended. Your response was not submitted. Thank you for your time.'}
     </p>
   )
 }

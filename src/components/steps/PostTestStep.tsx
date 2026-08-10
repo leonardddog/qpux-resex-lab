@@ -10,7 +10,7 @@ export function PostTestPanel() {
   const [uploadComplete, setUploadComplete] = useState(false)
 
   useEffect(() => {
-    if (uploadComplete) return
+    if (!showProgress || uploadComplete) return
     const timer = window.setInterval(() => {
       setUploadPercent((prev) => {
         if (prev >= 100) {
@@ -21,11 +21,9 @@ export function PostTestPanel() {
       })
     }, 350)
     return () => window.clearInterval(timer)
-  }, [uploadComplete])
+  }, [showProgress, uploadComplete])
 
-  useEffect(() => {
-    if (uploadPercent >= 100) setUploadComplete(true)
-  }, [uploadPercent])
+  const done = uploadComplete || uploadPercent >= 100
 
   return (
     <div className="post-test-panel">
@@ -51,13 +49,24 @@ export function PostTestPanel() {
               </>
             ) : (
               <>
-                <Lottie
-                  animationData={uploadPercent >= 100 ? success : uploader}
-                  loop={uploadPercent < 100}
-                  autoplay
-                  className="post-progress-anim"
-                  onComplete={() => setUploadComplete(true)}
-                />
+                {uploadPercent >= 100 ? (
+                  <Lottie
+                    key="success"
+                    animationData={success}
+                    loop={false}
+                    autoplay
+                    className="post-progress-anim"
+                    onComplete={() => setUploadComplete(true)}
+                  />
+                ) : (
+                  <Lottie
+                    key="uploader"
+                    animationData={uploader}
+                    loop
+                    autoplay
+                    className="post-progress-anim"
+                  />
+                )}
                 <p className="post-progress-text">
                   {uploadPercent >= 100
                     ? 'Session uploaded!'
@@ -76,7 +85,7 @@ export function PostTestPanel() {
         ) : (
           <>
             <p className="instr-disclaimer">
-              {uploadComplete
+              {done
                 ? 'Your session has been submitted!'
                 : "Note: We're saving your recording in the background, don't worry."}
             </p>

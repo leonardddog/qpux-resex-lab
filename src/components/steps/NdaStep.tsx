@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { UIEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { WuCheckbox, WuFormGroup, WuInput, WuLightbox } from '@npm-questionpro/wick-ui-lib'
+import { WuCheckbox, WuFormGroup, WuInput, WuLightbox, WuTooltip } from '@npm-questionpro/wick-ui-lib'
 import ndaAgreement from '../../../assets/nda-agreement.png'
 import { NDA_SECTIONS } from '../../data/study'
 import type { ParticipantDetails } from '../../types'
@@ -53,13 +53,20 @@ export function NdaPanel({
           }
         />
       </div>
-      <WuCheckbox
-        className="nda-panel-check"
-        checked={agreed}
-        disabled={!scrolledToEnd}
-        onChange={onAgree}
-        Label="I have read and agree to the agreement, including its confidentiality terms."
-      />
+      <WuTooltip
+        content={!scrolledToEnd ? 'You need to read the entire document :)' : ''}
+        position="top"
+        showArrow
+        duration={200}
+      >
+        <WuCheckbox
+          className="nda-panel-check"
+          checked={agreed}
+          disabled={!scrolledToEnd}
+          onChange={onAgree}
+          Label="I have read and agree to the agreement, including its confidentiality terms."
+        />
+      </WuTooltip>
     </>
   )
 }

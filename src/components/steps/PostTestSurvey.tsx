@@ -9,9 +9,50 @@ interface PostTestSurveyProps {
   onSubmit: () => void
 }
 
+let scrollAnimId = 0
+
+function scrollQuestionIntoView(
+  scroller: HTMLElement,
+  target: HTMLElement,
+  align: 'center' | 'start',
+) {
+  cancelAnimationFrame(scrollAnimId)
+  const scrollerRect = scroller.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
+  let goal = scroller.scrollTop
+  if (align === 'center') {
+    goal += targetRect.top + targetRect.height / 2 - (scrollerRect.top + scrollerRect.height / 2)
+  } else {
+    goal += targetRect.top - scrollerRect.top - 32
+  }
+  goal = Math.max(0, Math.min(goal, scroller.scrollHeight - scroller.clientHeight))
+
+  const start = scroller.scrollTop
+  const distance = goal - start
+  if (Math.abs(distance) < 1) return
+
+  const duration = 500
+  const startTime = performance.now()
+  let last = start
+
+  const easeInOutCubic = (t: number) =>
+    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+
+  const step = (now: number) => {
+    const current = scroller.scrollTop
+    if (Math.abs(current - last) > 0.5) return
+    const t = Math.min((now - startTime) / duration, 1)
+    scroller.scrollTop = start + distance * easeInOutCubic(t)
+    last = scroller.scrollTop
+    if (t < 1) scrollAnimId = requestAnimationFrame(step)
+  }
+  scrollAnimId = requestAnimationFrame(step)
+}
+
 export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTestSurveyProps) {
   const groupRef = useRef<HTMLDivElement>(null)
   const susRef = useRef<HTMLDivElement>(null)
+  const textScrollTimer = useRef<number | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [stage, setStage] = useState<'survey' | 'sus'>('survey')
   const [susAnswers, setSusAnswers] = useState<Record<number, number>>({})
@@ -53,7 +94,7 @@ export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTest
       }
       if (scroller.scrollTop <= 0) active = 0
       if (scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 1) {
-        active = items.length - 1
+        if (line < lower[items.length - 1]) active = items.length - 1
       }
       setActiveIndex(active)
     }
@@ -74,26 +115,48 @@ export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTest
 
   const handleSurveyAnswer = (questionIndex: number, id: string, value: string | string[]) => {
     onChange(id, value)
+    const question = POST_TEST_QUESTIONS[questionIndex]
+
+    if (question.type === 'multiple') {
+      if (!Array.isArray(value) || value.length < 2) return
+    } else if (question.type === 'text') {
+      if (textScrollTimer.current !== null) window.clearTimeout(textScrollTimer.current)
+      textScrollTimer.current = window.setTimeout(() => {
+        textScrollTimer.current = null
+        scrollToNextQuestion(questionIndex)
+      }, 3000)
+      return
+    }
+
+    scrollToNextQuestion(questionIndex)
+  }
+
+  const scrollToNextQuestion = (questionIndex: number) => {
     const nextIndex = POST_TEST_QUESTIONS.findIndex(
       (question, i) => i > questionIndex && !isAnswered(answers[question.id]),
     )
-    if (nextIndex > questionIndex) {
-      requestAnimationFrame(() => {
-        groupRef.current
-          ?.querySelectorAll<HTMLElement>('.post-survey-question')[nextIndex]
-          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      })
-    }
+    if (nextIndex <= questionIndex) return
+    requestAnimationFrame(() => {
+      const scroller = groupRef.current?.closest<HTMLElement>('.split-right')
+      const target = groupRef.current?.querySelectorAll<HTMLElement>('.post-survey-question')[nextIndex]
+      if (scroller && target) scrollQuestionIntoView(scroller, target, 'center')
+    })
   }
+
+  useEffect(() => {
+    return () => {
+      if (textScrollTimer.current !== null) window.clearTimeout(textScrollTimer.current)
+    }
+  }, [])
 
   const handleSusAnswer = (index: number, value: number) => {
     setSusAnswers((prev) => ({ ...prev, [index]: value }))
     const nextIndex = SUS_QUESTIONS.findIndex((_, i) => i > index && susAnswers[i] === undefined)
     if (nextIndex > index) {
       requestAnimationFrame(() => {
-        susRef.current
-          ?.querySelectorAll<HTMLElement>('.sus-item')[nextIndex]
-          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const scroller = susRef.current?.closest<HTMLElement>('.split-right')
+        const target = susRef.current?.querySelectorAll<HTMLElement>('.sus-item')[nextIndex]
+        if (scroller && target) scrollQuestionIntoView(scroller, target, 'center')
       })
     }
   }

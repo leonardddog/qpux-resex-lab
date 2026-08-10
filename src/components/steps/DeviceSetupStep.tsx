@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { WuButton, WuChip, WuIcon, WuSelect } from '@npm-questionpro/wick-ui-lib'
 import cameraEmpty from '../../../assets/camera-empty.png'
+import { storeDevices } from '../../lib/deviceStore'
 import { iconStyle } from '../../lib/icon'
 
 const DEVICE_GROUPS = [
@@ -161,6 +162,10 @@ export default function DeviceSetupStep({ onReadyChange }: DeviceSetupStepProps)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    storeDevices({ cameraId: selectedCamera, micId: selectedMic })
+  }, [selectedCamera, selectedMic])
 
   const canSelect = permission === 'granted'
   const cameraMicReady = canSelect && selectedCamera !== null && selectedMic !== null
