@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { WuButton } from '@npm-questionpro/wick-ui-lib'
 import type {
@@ -15,6 +15,7 @@ import { STEP_INSTRUCTIONS } from './data/instructions'
 import welcomeScreen from '../assets/welcome-screen.svg'
 import screenedOutScreen from '../assets/screened-out.svg'
 import thankYouScreen from '../assets/thank-you.png'
+import CameraPiP, { type CameraPiPHandle, type CameraPiPMode } from './components/test/CameraPiP'
 import DeviceSetupStep from './components/steps/DeviceSetupStep'
 import LoaderStep from './components/steps/LoaderStep'
 import NdaStep, { NdaPanel } from './components/steps/NdaStep'
@@ -46,6 +47,9 @@ export default function App() {
   const [stepMenuOpen, setStepMenuOpen] = useState(false)
   const [jumpToTestStage, setJumpToTestStage] = useState<TestStage | null>(null)
   const [loaderMode, setLoaderMode] = useState<'pre' | 'post'>('pre')
+  const [testQuit, setTestQuit] = useState(false)
+  const cameraPiPRef = useRef<CameraPiPHandle>(null)
+  const [pipMode, setPipMode] = useState<CameraPiPMode>('off')
 
   const goTo = (next: SetupScreen | TestScreen) => {
     setScreen(next)
@@ -64,6 +68,16 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
+
+  useEffect(() => {
+    if (screen === 'welcome' || screen === 'thankYou') return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [screen])
 
   const onSelectStep = (target: StepTarget) => {
     setStepMenuOpen(false)
@@ -109,7 +123,10 @@ export default function App() {
   const onFooterAction = () => {
     if (screen === 'welcome') goTo('nda')
     else if (screen === 'nda' || screen === 'screener' || screen === 'device') {
-      if (screen === 'device') setLoaderMode('pre')
+      if (screen === 'device') {
+        setLoaderMode('pre')
+        cameraPiPRef.current?.open()
+      }
       goTo(nextScreen[screen])
     }
   }
@@ -123,30 +140,25 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [screen, loaderMode])
 
+  useEffect(() => {
+    if (screen !== 'loading' && screen !== 'test') {
+      cameraPiPRef.current?.close()
+    } else if (screen === 'test') {
+      void cameraPiPRef.current?.open()
+    }
+  }, [screen])
+
   const onFinishTest = () => {
+    cameraPiPRef.current?.close()
     setLoaderMode('post')
+    setTestQuit(false)
     goTo('loading')
   }
 
-  if (screen === 'loading' || screen === 'test') {
-    return (
-      <>
-        {stepMenu}
-        <div className="app">
-          <div className="app-inner app-inner--full">
-            {screen === 'loading' ? (
-              <LoaderStep showText={loaderMode === 'pre'} />
-            ) : (
-              <TestStep
-                jumpTo={jumpToTestStage}
-                onJumpConsumed={() => setJumpToTestStage(null)}
-                onFinishTest={onFinishTest}
-              />
-            )}
-          </div>
-        </div>
-      </>
-    )
+  const onQuitTest = () => {
+    cameraPiPRef.current?.close()
+    setTestQuit(true)
+    goTo('thankYou')
   }
 
   let panelContent: ReactNode
@@ -194,77 +206,114 @@ export default function App() {
         <PostTestSurvey
           answers={postAnswers}
           onChange={(id, value) => setPostAnswers((prev) => ({ ...prev, [id]: value }))}
-          onSubmit={() => goTo('thankYou')}
+          onSubmit={() => {
+            setTestQuit(false)
+            goTo('thankYou')
+          }}
         />
       )
       break
     case 'thankYou':
-      panelContent = <ThankYouPanel />
+      panelContent = <ThankYouPanel submitted={!testQuit} />
       rightContent = <img src={thankYouScreen} alt="" className="welcome-screen" />
       break
   }
 
   return (
     <>
+      <CameraPiP ref={cameraPiPRef} autoOpen={false} onModeChange={setPipMode} />
       {stepMenu}
-      <div className="app">
-        <div className="app-inner">
-          <SplitLayout
-            left={
-              <InstructionsPanel
-                title={
-                  screen === 'screenedOut'
-                    ? 'Maybe next time!'
-                    : screen === 'device'
-                      ? 'Test setup'
-                      : screen === 'postTest'
-                        ? 'Great job!'
-                        : screen === 'thankYou'
-                          ? 'Thank you!'
-                          : STUDY.title
-                }
-                footer={
-                  <>
-                    {screen !== 'screener' &&
-                    screen !== 'screenedOut' &&
-                    screen !== 'postTest' &&
-                    screen !== 'thankYou' ? (
-                      <WuButton
-                        className="instr-footer-button"
-                        disabled={!canProceed}
-                        onClick={onFooterAction}
-                      >
-                        {footerLabel}
-                      </WuButton>
-                    ) : null}
-                    <p className="instr-powered">
-                      Powered by{' '}
-                      <a href="https://www.questionpro.com" target="_blank" rel="noreferrer">
-                        QuestionPro
-                      </a>
-                    </p>
-                  </>
-                }
-              >
-                <div key={screen} className="panel-step">
-                  {panelContent}
-                </div>
-              </InstructionsPanel>
-            }
-          >
-            <div className="flow-content">
-              <div
-                key={screen}
-                className={`flow-step ${
-                  screen === 'screener' || screen === 'postTest' ? 'flow-step--plain' : ''
-                }`}
-              >
-                {rightContent}
-              </div>
-            </div>
-          </SplitLayout>
+      {screen === 'loading' || screen === 'test' ? (
+        <div className="app">
+          <div className="app-inner app-inner--full">
+            {screen === 'loading' ? (
+              <LoaderStep showText={loaderMode === 'pre'} />
+            ) : (
+              <TestStep
+                jumpTo={jumpToTestStage}
+                onJumpConsumed={() => setJumpToTestStage(null)}
+                onFinishTest={onFinishTest}
+                onQuit={onQuitTest}
+                pipMode={pipMode}
+                onToggleCamera={() => cameraPiPRef.current?.toggle()}
+              />
+            )}
           </div>
         </div>
-      </>
-    )
-  }
+      ) : (
+        <div className="app">
+          <div className="app-inner">
+            <SplitLayout
+              left={
+                <InstructionsPanel
+                  title={
+                    screen === 'screenedOut'
+                      ? 'Maybe next time!'
+                      : screen === 'device'
+                        ? 'Test setup'
+                        : screen === 'postTest'
+                          ? 'Great job!'
+                          : screen === 'thankYou'
+                            ? 'Thank you!'
+                            : STUDY.title
+                  }
+                  footer={
+                    <>
+                      {screen === 'screenedOut' ? (
+                        <WuButton
+                          className="instr-footer-button"
+                          onClick={() => {
+                            window.open('https://ux.questionpro.com/tester/signup', '_blank', 'noopener')
+                          }}
+                        >
+                          Get paid to test
+                        </WuButton>
+                      ) : null}
+                      {screen !== 'screener' &&
+                      screen !== 'screenedOut' &&
+                      screen !== 'postTest' &&
+                      screen !== 'thankYou' ? (
+                        <WuButton
+                          className="instr-footer-button"
+                          disabled={!canProceed}
+                          onClick={onFooterAction}
+                        >
+                          {footerLabel}
+                        </WuButton>
+                      ) : null}
+                      <p className="instr-powered">
+                        Powered by{' '}
+                        <a href="https://www.questionpro.com" target="_blank" rel="noreferrer">
+                          QuestionPro
+                        </a>
+                      </p>
+                    </>
+                  }
+                >
+                  <div key={screen} className="panel-step">
+                    {panelContent}
+                  </div>
+                </InstructionsPanel>
+              }
+            >
+              <div className="flow-content">
+                <div
+                  key={screen}
+                  className={`flow-step ${
+                    screen === 'screener' || screen === 'postTest' ? 'flow-step--plain' : ''
+                  } ${
+                    screen === 'welcome' || screen === 'screenedOut' || screen === 'thankYou'
+                      ? 'flow-step--flush'
+                      : ''
+                  }`}
+                >
+                  {rightContent}
+                </div>
+              </div>
+            </SplitLayout>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}

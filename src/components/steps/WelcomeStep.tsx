@@ -27,7 +27,7 @@ export default function WelcomePanel() {
         <p className="instr-disclaimer">This study requires the following permissions:</p>
         <div className="instr-permissions">
           <WuChip size="md" variant="secondary" className="chip-icon">
-            <WuIcon icon="wm-camera" style={{ ...iconStyle(12), transform: 'translateY(1px)' }} />
+            <WuIcon icon="wm-videocam" style={{ ...iconStyle(12), transform: 'translateY(1px)' }} />
             Camera
           </WuChip>
           <WuChip size="md" variant="secondary" className="chip-icon">

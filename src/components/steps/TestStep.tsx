@@ -5,12 +5,18 @@ import {
   WuIcon,
   WuMenu,
   WuMenuItem,
+  WuModal,
+  WuModalClose,
+  WuModalContent,
+  WuModalFooter,
+  WuModalHeader,
   WuRadioGroup,
   WuTab,
 } from '@npm-questionpro/wick-ui-lib'
 import type { TestStage } from '../../lib/stepNav'
 import { STUDY } from '../../data/study'
 import { iconStyle } from '../../lib/icon'
+import type { CameraPiPMode } from '../test/CameraPiP'
 import TestTimerV2 from './TestTimerV2'
 
 const COUNTDOWN_START = STUDY.durationMinutes * 60
@@ -47,9 +53,19 @@ interface TestStepProps {
   jumpTo?: TestStage | null
   onJumpConsumed?: () => void
   onFinishTest?: () => void
+  onQuit?: () => void
+  pipMode?: CameraPiPMode
+  onToggleCamera?: () => void
 }
 
-export default function TestStep({ jumpTo, onJumpConsumed, onFinishTest }: TestStepProps) {
+export default function TestStep({
+  jumpTo,
+  onJumpConsumed,
+  onFinishTest,
+  onQuit,
+  pipMode,
+  onToggleCamera,
+}: TestStepProps) {
   const [remaining, setRemaining] = useState(COUNTDOWN_START)
   const [shown, setShown] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -63,6 +79,7 @@ export default function TestStep({ jumpTo, onJumpConsumed, onFinishTest }: TestS
   const [usability, setUsability] = useState(false)
   const [usabilityRating, setUsabilityRating] = useState<number | null>(null)
   const [taskIndex, setTaskIndex] = useState(0)
+  const [quitOpen, setQuitOpen] = useState(false)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -182,6 +199,11 @@ export default function TestStep({ jumpTo, onJumpConsumed, onFinishTest }: TestS
     { icon: 'wm-support-agent' as const, label: 'Help' },
     { icon: 'wm-logout' as const, label: 'Quit study' },
   ]
+
+  const confirmQuit = () => {
+    setQuitOpen(false)
+    onQuit?.()
+  }
 
   const chip = stage === 'frameOfMind' ? 'Frame of mind' : 'Impression test'
   const paragraphs =
@@ -388,25 +410,36 @@ export default function TestStep({ jumpTo, onJumpConsumed, onFinishTest }: TestS
         ) : null}
       </div>
       <div className="test-tools">
-        {running ? (
-          <div className="test-tools-actions">
-            <WuButton onClick={finishTask}>Finish task</WuButton>
-            <WuButton
-              variant="secondary"
-              Icon={
-                <WuIcon
-                  icon={showInstructions ? 'wm-visibility-off' : 'wm-visibility'}
-                  style={iconStyle(16)}
-                />
-              }
-              onClick={toggleInstructions}
-            >
-              Instructions
-            </WuButton>
-          </div>
-        ) : null}
+        <div className="test-tools-actions">
+          {running ? (
+            <>
+              <WuButton onClick={finishTask}>Finish task</WuButton>
+              <WuButton
+                variant="secondary"
+                Icon={
+                  <WuIcon
+                    icon={showInstructions ? 'wm-visibility-off' : 'wm-visibility'}
+                    style={iconStyle(16)}
+                  />
+                }
+                onClick={toggleInstructions}
+              >
+                Instructions
+              </WuButton>
+            </>
+          ) : null}
+        </div>
         <TestTimerV2 remaining={remaining} total={COUNTDOWN_START} />
         <div className="test-tools-menu">
+          {pipMode === 'off' ? (
+            <WuButton
+              variant="secondary"
+              Icon={<WuIcon icon="wm-videocam" style={iconStyle(16)} />}
+              onClick={onToggleCamera}
+            >
+              Camera
+            </WuButton>
+          ) : null}
           <WuMenu
             position={{ side: 'top', align: 'end', sideOffset: 8 }}
             Trigger={
@@ -425,6 +458,7 @@ export default function TestStep({ jumpTo, onJumpConsumed, onFinishTest }: TestS
                     style={iconStyle(item.icon === 'wc-language' ? 19 : 16)}
                   />
                 }
+                onClick={item.label === 'Quit study' ? () => setQuitOpen(true) : undefined}
               >
                 {item.label}
               </WuMenuItem>
@@ -432,6 +466,26 @@ export default function TestStep({ jumpTo, onJumpConsumed, onFinishTest }: TestS
           </WuMenu>
         </div>
       </div>
+      <WuModal
+        open={quitOpen}
+        onOpenChange={setQuitOpen}
+        size="sm"
+        variant="critical"
+        preventClickOutside
+      >
+        <WuModalHeader>Quit test</WuModalHeader>
+        <WuModalContent>
+          <p className="test-quit-warning">
+            Are you sure you want to quit the test? Your response will not be submitted.
+          </p>
+        </WuModalContent>
+        <WuModalFooter>
+          <WuModalClose variant="secondary">Cancel</WuModalClose>
+          <WuButton color="error" onClick={confirmQuit}>
+            Quit test
+          </WuButton>
+        </WuModalFooter>
+      </WuModal>
     </div>
   )
 }
