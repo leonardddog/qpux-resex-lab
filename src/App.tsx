@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { WuButton } from '@npm-questionpro/wick-ui-lib'
+import { Analytics } from '@vercel/analytics/react';
 import type {
   ParticipantDetails,
   PostTestAnswers,
@@ -243,6 +244,7 @@ export default function App() {
       ) : (
         <div className="app">
           <div className="app-inner">
+            <Analytics />
             <SplitLayout
               left={
                 <InstructionsPanel
@@ -270,9 +272,9 @@ export default function App() {
                         </WuButton>
                       ) : null}
                       {screen !== 'screener' &&
-                      screen !== 'screenedOut' &&
-                      screen !== 'postTest' &&
-                      screen !== 'thankYou' ? (
+                        screen !== 'screenedOut' &&
+                        screen !== 'postTest' &&
+                        screen !== 'thankYou' ? (
                         <WuButton
                           className="instr-footer-button"
                           disabled={!canProceed}
@@ -299,13 +301,11 @@ export default function App() {
               <div className="flow-content">
                 <div
                   key={screen}
-                  className={`flow-step ${
-                    screen === 'screener' || screen === 'postTest' ? 'flow-step--plain' : ''
-                  } ${
-                    screen === 'welcome' || screen === 'screenedOut' || screen === 'thankYou'
+                  className={`flow-step ${screen === 'screener' || screen === 'postTest' ? 'flow-step--plain' : ''
+                    } ${screen === 'welcome' || screen === 'screenedOut' || screen === 'thankYou'
                       ? 'flow-step--flush'
                       : ''
-                  }`}
+                    }`}
                 >
                   {rightContent}
                 </div>
