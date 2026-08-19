@@ -255,7 +255,7 @@ export default function App() {
           className={`confetti-overlay${showConfetti ? (confettiFading ? ' confetti-fade-out' : '') : ' confetti-hidden'}`}
           style={{ transition: 'opacity 0.5s ease-out' }}
         >
-          <Lottie key={confettiKey} animationData={confettiBlue} loop={false} speed={1 / 1.3} />
+          <Lottie key={confettiKey} animationData={confettiBlue} loop={false} />
         </div>,
         document.body,
       )}
