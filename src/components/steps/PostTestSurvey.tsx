@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, useCallback } from 'react'
 import { WuButton, WuChip } from '@npm-questionpro/wick-ui-lib'
 import { POST_TEST_QUESTIONS, SUS_QUESTIONS, SUS_SCALE } from '../../data/study'
 import type { PostTestAnswers, PostTestQuestion } from '../../types'
@@ -56,6 +56,31 @@ export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTest
   const [activeIndex, setActiveIndex] = useState(0)
   const [stage, setStage] = useState<'survey' | 'sus'>('survey')
   const [susAnswers, setSusAnswers] = useState<Record<number, number>>({})
+  const [submitStage, setSubmitStage] = useState<'idle' | 'submitting' | 'submitted'>('idle')
+  const submitTimers = useRef<number[]>([])
+
+  useEffect(() => {
+    if (stage !== 'sus') return
+    const next = SUS_QUESTIONS.findIndex((_, i) => susAnswers[i] === undefined)
+    setActiveIndex(next === -1 ? SUS_QUESTIONS.length - 1 : next)
+  }, [stage, susAnswers])
+
+  const handleSubmit = useCallback(() => {
+    setSubmitStage('submitting')
+    const t1 = window.setTimeout(() => {
+      setSubmitStage('submitted')
+      const t2 = window.setTimeout(() => onSubmit(), 300)
+      submitTimers.current.push(t2)
+    }, 1000)
+    submitTimers.current.push(t1)
+  }, [onSubmit])
+
+  useEffect(() => {
+    return () => {
+      submitTimers.current.forEach(window.clearTimeout)
+      submitTimers.current = []
+    }
+  }, [])
 
   const allAnswered = POST_TEST_QUESTIONS.every((question) => {
     const value = answers[question.id]
@@ -65,12 +90,13 @@ export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTest
   const susComplete = SUS_QUESTIONS.every((_, index) => susAnswers[index] !== undefined)
 
   useEffect(() => {
-    const container = stage === 'survey' ? groupRef.current : susRef.current
+    if (stage !== 'survey') return
+    const container = groupRef.current
     if (!container) return
     const scroller = container.closest<HTMLElement>('.split-right')
     if (!scroller) return
 
-    const itemSelector = stage === 'survey' ? '.post-survey-question' : '.sus-item'
+    const itemSelector = '.post-survey-question'
 
     const update = () => {
       const items = container.querySelectorAll<HTMLElement>(itemSelector)
@@ -156,7 +182,7 @@ export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTest
       requestAnimationFrame(() => {
         const scroller = susRef.current?.closest<HTMLElement>('.split-right')
         const target = susRef.current?.querySelectorAll<HTMLElement>('.sus-item')[nextIndex]
-        if (scroller && target) scrollQuestionIntoView(scroller, target, 'center')
+        if (scroller && target) scrollQuestionIntoView(scroller, target, 'start')
       })
     }
   }
@@ -238,8 +264,23 @@ export default function PostTestSurvey({ answers, onChange, onSubmit }: PostTest
             </Fragment>
           ))}
           <div className="post-survey-actions">
-            <WuButton className="post-survey-continue" disabled={!susComplete} onClick={onSubmit}>
-              Submit
+            <WuButton
+              className="post-survey-continue"
+              color={submitStage === 'submitted' ? 'deep' : 'primary'}
+              disabled={!susComplete && submitStage === 'idle'}
+              loading={submitStage === 'submitting'}
+              onClick={handleSubmit}
+            >
+              {submitStage === 'submitted' ? (
+                <span className="post-survey-submitted">
+                  <svg className="post-survey-check" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Submitted
+                </span>
+              ) : (
+                'Submit'
+              )}
             </WuButton>
           </div>
           <div className="post-survey-end" aria-hidden="true" />

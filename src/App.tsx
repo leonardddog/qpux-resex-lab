@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import type { CSSProperties, ReactNode } from 'react'
 import { WuButton } from '@npm-questionpro/wick-ui-lib'
+import Lottie from 'lottie-react'
 import { Analytics } from '@vercel/analytics/react';
 import type {
   ParticipantDetails,
@@ -15,7 +17,7 @@ import { STUDY } from './data/study'
 import { STEP_INSTRUCTIONS } from './data/instructions'
 import welcomeScreen from '../assets/welcome-screen.svg'
 import screenedOutScreen from '../assets/screened-out.svg'
-import thankYouScreen from '../assets/thank-you.png'
+import confettiBlue from '../assets/confetti_edited.json'
 import CameraPiP, { type CameraPiPHandle, type CameraPiPMode } from './components/test/CameraPiP'
 import DeviceSetupStep from './components/steps/DeviceSetupStep'
 import LoaderStep from './components/steps/LoaderStep'
@@ -49,12 +51,37 @@ export default function App() {
   const [jumpToTestStage, setJumpToTestStage] = useState<TestStage | null>(null)
   const [loaderMode, setLoaderMode] = useState<'pre' | 'post'>('pre')
   const [testQuit, setTestQuit] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [confettiFading, setConfettiFading] = useState(false)
+  const [confettiKey, setConfettiKey] = useState(0)
+  const [fadingOut, setFadingOut] = useState(false)
   const cameraPiPRef = useRef<CameraPiPHandle>(null)
   const [pipMode, setPipMode] = useState<CameraPiPMode>('off')
 
   const goTo = (next: SetupScreen | TestScreen) => {
     setScreen(next)
     window.scrollTo({ top: 0 })
+  }
+
+  useEffect(() => {
+    if (!showConfetti) return
+    const fadeTimer = window.setTimeout(() => setConfettiFading(true), 6300)
+    const removeTimer = window.setTimeout(() => {
+      setShowConfetti(false)
+      setConfettiFading(false)
+    }, 6800)
+    return () => {
+      window.clearTimeout(fadeTimer)
+      window.clearTimeout(removeTimer)
+    }
+  }, [showConfetti])
+
+  const handleFadeOutEnd = () => {
+    setFadingOut(false)
+    setScreen('thankYou')
+    window.scrollTo({ top: 0 })
+    setConfettiKey((k) => k + 1)
+    setShowConfetti(true)
   }
 
   useEffect(() => {
@@ -209,14 +236,13 @@ export default function App() {
           onChange={(id, value) => setPostAnswers((prev) => ({ ...prev, [id]: value }))}
           onSubmit={() => {
             setTestQuit(false)
-            goTo('thankYou')
+            window.setTimeout(() => setFadingOut(true), 500)
           }}
         />
       )
       break
     case 'thankYou':
-      panelContent = <ThankYouPanel submitted={!testQuit} />
-      rightContent = <img src={thankYouScreen} alt="" className="welcome-screen" />
+      rightContent = <ThankYouPanel submitted={!testQuit} />
       break
   }
 
@@ -224,6 +250,15 @@ export default function App() {
     <>
       <CameraPiP ref={cameraPiPRef} autoOpen={false} onModeChange={setPipMode} />
       {stepMenu}
+      {createPortal(
+        <div
+          className={`confetti-overlay${showConfetti ? (confettiFading ? ' confetti-fade-out' : '') : ' confetti-hidden'}`}
+          style={{ transition: 'opacity 0.5s ease-out' }}
+        >
+          <Lottie key={confettiKey} animationData={confettiBlue} loop={false} speed={1 / 1.3} />
+        </div>,
+        document.body,
+      )}
       {screen === 'loading' || screen === 'test' ? (
         <div className="app">
           <div className="app-inner app-inner--full">
@@ -246,56 +281,60 @@ export default function App() {
           <div className="app-inner">
             <Analytics />
             <SplitLayout
+              leftClassName={fadingOut ? 'animate__animated animate__fadeOut' : undefined}
+              leftStyle={fadingOut ? { '--animate-duration': '0.75s' } as CSSProperties : undefined}
               left={
-                <InstructionsPanel
-                  title={
-                    screen === 'screenedOut'
-                      ? 'Maybe next time!'
-                      : screen === 'device'
-                        ? 'Test setup'
-                        : screen === 'postTest'
-                          ? 'Great job!'
-                          : screen === 'thankYou'
-                            ? 'Thank you!'
+                screen !== 'thankYou' ? (
+                  <InstructionsPanel
+                    title={
+                      screen === 'screenedOut'
+                        ? 'Maybe next time!'
+                        : screen === 'device'
+                          ? 'Test setup'
+                          : screen === 'postTest'
+                            ? 'Almost there!'
                             : STUDY.title
-                  }
-                  footer={
-                    <>
-                      {screen === 'screenedOut' ? (
-                        <WuButton
-                          className="instr-footer-button"
-                          onClick={() => {
-                            window.open('https://ux.questionpro.com/tester/signup', '_blank', 'noopener')
-                          }}
-                        >
-                          Get paid to test
-                        </WuButton>
-                      ) : null}
-                      {screen !== 'screener' &&
-                        screen !== 'screenedOut' &&
-                        screen !== 'postTest' &&
-                        screen !== 'thankYou' ? (
-                        <WuButton
-                          className="instr-footer-button"
-                          disabled={!canProceed}
-                          onClick={onFooterAction}
-                        >
-                          {footerLabel}
-                        </WuButton>
-                      ) : null}
-                      <p className="instr-powered">
-                        Powered by{' '}
-                        <a href="https://www.questionpro.com" target="_blank" rel="noreferrer">
-                          QuestionPro
-                        </a>
-                      </p>
-                    </>
-                  }
-                >
-                  <div key={screen} className="panel-step">
-                    {panelContent}
-                  </div>
-                </InstructionsPanel>
+                    }
+                    footer={
+                      <>
+                        {screen === 'screenedOut' ? (
+                          <WuButton
+                            className="instr-footer-button"
+                            onClick={() => {
+                              window.open('https://ux.questionpro.com/tester/signup', '_blank', 'noopener')
+                            }}
+                          >
+                            Get paid to test
+                          </WuButton>
+                        ) : null}
+                        {screen !== 'screener' &&
+                          screen !== 'screenedOut' &&
+                          screen !== 'postTest' ? (
+                          <WuButton
+                            className="instr-footer-button"
+                            disabled={!canProceed}
+                            onClick={onFooterAction}
+                          >
+                            {footerLabel}
+                          </WuButton>
+                        ) : null}
+                        <p className="instr-powered">
+                          Powered by{' '}
+                          <a href="https://www.questionpro.com" target="_blank" rel="noreferrer">
+                            QuestionPro
+                          </a>
+                        </p>
+                      </>
+                    }
+                  >
+                    <div
+                      key={screen}
+                      className="panel-step"
+                    >
+                      {panelContent}
+                    </div>
+                  </InstructionsPanel>
+                ) : undefined
               }
             >
               <div className="flow-content">
@@ -305,7 +344,16 @@ export default function App() {
                     } ${screen === 'welcome' || screen === 'screenedOut' || screen === 'thankYou'
                       ? 'flow-step--flush'
                       : ''
-                    }`}
+                    } ${screen === 'postTest' && fadingOut ? 'animate__animated animate__fadeOut' : ''
+                    } ${screen === 'thankYou' ? 'animate__animated animate__fadeIn' : ''}`}
+                  style={
+                    screen === 'postTest' && fadingOut
+                      ? { '--animate-duration': '0.3s' } as CSSProperties
+                      : screen === 'thankYou'
+                        ? { '--animate-duration': '0.5s' } as CSSProperties
+                        : undefined
+                  }
+                  onAnimationEnd={screen === 'postTest' && fadingOut ? handleFadeOutEnd : undefined}
                 >
                   {rightContent}
                 </div>
