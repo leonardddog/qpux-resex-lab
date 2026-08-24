@@ -16,7 +16,6 @@ import type { StepTarget, TestStage } from './lib/stepNav'
 import { STUDY } from './data/study'
 import { STEP_INSTRUCTIONS } from './data/instructions'
 import welcomeScreen from '../assets/welcome-screen.svg'
-import screenedOutScreen from '../assets/screened-out.svg'
 import confettiBlue from '../assets/confetti_edited.json'
 import CameraPiP, { type CameraPiPHandle, type CameraPiPMode } from './components/test/CameraPiP'
 import DeviceSetupStep from './components/steps/DeviceSetupStep'
@@ -221,8 +220,7 @@ export default function App() {
       )
       break
     case 'screenedOut':
-      panelContent = <ScreenedOutPanel />
-      rightContent = <img src={screenedOutScreen} alt="" className="welcome-screen" />
+      rightContent = <ScreenedOutPanel />
       break
     case 'device':
       panelContent = <p className="instr-lede">{STEP_INSTRUCTIONS.device.description}</p>
@@ -284,32 +282,18 @@ export default function App() {
               leftClassName={fadingOut ? 'animate__animated animate__fadeOut' : undefined}
               leftStyle={fadingOut ? { '--animate-duration': '0.75s' } as CSSProperties : undefined}
               left={
-                screen !== 'thankYou' ? (
+                screen !== 'thankYou' && screen !== 'screenedOut' ? (
                   <InstructionsPanel
                     title={
-                      screen === 'screenedOut'
-                        ? 'Maybe next time!'
-                        : screen === 'device'
-                          ? 'Test setup'
-                          : screen === 'postTest'
-                            ? 'Almost there!'
-                            : STUDY.title
+                      screen === 'device'
+                        ? 'Test setup'
+                        : screen === 'postTest'
+                          ? 'Almost there!'
+                          : STUDY.title
                     }
                     footer={
                       <>
-                        {screen === 'screenedOut' ? (
-                          <WuButton
-                            className="instr-footer-button"
-                            onClick={() => {
-                              window.open('https://ux.questionpro.com/tester/signup', '_blank', 'noopener')
-                            }}
-                          >
-                            Get paid to test
-                          </WuButton>
-                        ) : null}
-                        {screen !== 'screener' &&
-                          screen !== 'screenedOut' &&
-                          screen !== 'postTest' ? (
+                        {screen !== 'screener' && screen !== 'postTest' ? (
                           <WuButton
                             className="instr-footer-button"
                             disabled={!canProceed}
@@ -345,11 +329,11 @@ export default function App() {
                       ? 'flow-step--flush'
                       : ''
                     } ${screen === 'postTest' && fadingOut ? 'animate__animated animate__fadeOut' : ''
-                    } ${screen === 'thankYou' ? 'animate__animated animate__fadeIn' : ''}`}
+                    } ${(screen === 'thankYou' || screen === 'screenedOut') ? 'animate__animated animate__fadeIn' : ''}`}
                   style={
                     screen === 'postTest' && fadingOut
                       ? { '--animate-duration': '0.3s' } as CSSProperties
-                      : screen === 'thankYou'
+                      : screen === 'thankYou' || screen === 'screenedOut'
                         ? { '--animate-duration': '0.5s' } as CSSProperties
                         : undefined
                   }
